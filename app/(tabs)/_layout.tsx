@@ -1,11 +1,13 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Tabs } from "expo-router";
+import { Tabs, useRouter } from "expo-router";
 
 /**
  * - 아이콘 참고 사이트
  * https://icons.expo.fyi/Index
  */
 export default function TabsLayout() {
+  const router = useRouter();
+
   return (
     <Tabs
       screenOptions={{
@@ -40,6 +42,13 @@ export default function TabsLayout() {
       />
       <Tabs.Screen
         name="add"
+        listeners={{
+          tabPress: (e) => {
+            // add는 페이지가 아닌 모달이 떠야하는 탭, 라우터 기능 방지
+            e.preventDefault();
+            router.navigate("/modal");
+          },
+        }}
         options={{
           tabBarLabel: () => null,
           tabBarIcon: ({ focused }) => (
