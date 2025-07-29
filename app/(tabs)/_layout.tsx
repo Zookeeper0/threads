@@ -83,7 +83,7 @@ export default function TabsLayout() {
         }}
       />
       {/* 메인 화면에서 "/" 와 "/following" 페이지를 탭을통해 이동할 수 있는데 following은 탭에 표시하지 않음 
-        href: null 옵션을 추가하면 탭에 표시되지 않음
+        href: null 옵션을 추가하면 탭에 표시되지 않음 하지만 그냥 (tabs) 폴더 안에 (home) 폴더 안에 index.tsx 파일을 만들어서 탭에 표시되지 않게 할 수 있음
       */}
       {/* <Tabs.Screen
         name="following"
@@ -92,6 +92,15 @@ export default function TabsLayout() {
           href: null,
         }}
       /> */}
+
+      {/* 게시글 상세 페이지 탭 안보이게 추가*/}
+      <Tabs.Screen
+        name="(post)/[username]/post/[postID]"
+        options={{
+          tabBarLabel: () => null,
+          href: null,
+        }}
+      />
     </Tabs>
   );
 }
