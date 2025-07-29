@@ -15,7 +15,7 @@ export default function TabsLayout() {
       }}
     >
       <Tabs.Screen
-        name="index"
+        name="(home)"
         options={{
           tabBarLabel: () => null,
           tabBarIcon: ({ focused }) => (
@@ -82,6 +82,16 @@ export default function TabsLayout() {
           ),
         }}
       />
+      {/* 메인 화면에서 "/" 와 "/following" 페이지를 탭을통해 이동할 수 있는데 following은 탭에 표시하지 않음 
+        href: null 옵션을 추가하면 탭에 표시되지 않음
+      */}
+      {/* <Tabs.Screen
+        name="following"
+        options={{
+          tabBarLabel: () => null,
+          href: null,
+        }}
+      /> */}
     </Tabs>
   );
 }
