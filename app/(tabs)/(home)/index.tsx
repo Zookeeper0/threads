@@ -15,6 +15,21 @@ export default function Index() {
           <Text>Following</Text>
         </TouchableOpacity>
       </View>
+      <View>
+        <TouchableOpacity onPress={() => router.push(`/@eastzoo/post/1`)}>
+          <Text>게시글1</Text>
+        </TouchableOpacity>
+      </View>
+      <View>
+        <TouchableOpacity onPress={() => router.push(`/@eastzoo/post/2`)}>
+          <Text>게시글2</Text>
+        </TouchableOpacity>
+      </View>
+      <View>
+        <TouchableOpacity onPress={() => router.push(`/@eastzoo/post/3`)}>
+          <Text>게시글3</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
