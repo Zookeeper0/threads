@@ -36,3 +36,8 @@ https://docs.expo.dev/versions/latest/sdk/safe-area-context/
 
 > 리액트 에니메이션 라이브러리 추천
 > https://docs.expo.dev/versions/latest/sdk/reanimated/ > https://docs.expo.dev/versions/latest/sdk/lottie/
+
+# FlatList
+
+스크롤 안에 리스트 들어갈때 성능 최적화
+현재 보이는 리스트들만 자동 캐시
