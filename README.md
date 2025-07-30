@@ -33,3 +33,6 @@ https://docs.expo.dev/versions/latest/sdk/safe-area-context/
 ```
 
 # rn에서는 flexDirection이 기본이 column이다 그래서 alignItems와 justifyContent 등의 쓰임새가 반대!
+
+> 리액트 에니메이션 라이브러리 추천
+> https://docs.expo.dev/versions/latest/sdk/reanimated/ > https://docs.expo.dev/versions/latest/sdk/lottie/
