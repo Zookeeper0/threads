@@ -1,7 +1,10 @@
 import { FontAwesome, Ionicons } from "@expo/vector-icons";
+import * as Linking from "expo-linking";
+import * as Location from "expo-location";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
+  Alert,
   FlatList,
   Image,
   Pressable,
@@ -93,41 +96,41 @@ export default function Modal() {
 
   const removeImageFromThread = (id: string, uriToRemove: string) => {};
 
-  // const getMyLocation = async (id: string) => {
-  //   let { status } = await Location.requestForegroundPermissionsAsync();
-  //   console.log("getMyLocation", status);
-  //   if (status !== "granted") {
-  //     Alert.alert(
-  //       "Location permission not granted",
-  //       "Please grant location permission to use this feature",
-  //       [
-  //         {
-  //           text: "Open settings",
-  //           onPress: () => {
-  //             Linking.openSettings();
-  //           },
-  //         },
-  //         {
-  //           text: "Cancel",
-  //         },
-  //       ]
-  //     );
-  //     return;
-  //   }
+  const getMyLocation = async (id: string) => {
+    let { status } = await Location.requestForegroundPermissionsAsync();
+    console.log("getMyLocation", status);
+    if (status !== "granted") {
+      Alert.alert(
+        "Location permission not granted",
+        "Please grant location permission to use this feature",
+        [
+          {
+            text: "Open settings",
+            onPress: () => {
+              Linking.openSettings();
+            },
+          },
+          {
+            text: "Cancel",
+          },
+        ]
+      );
+      return;
+    }
 
-  //   const location = await Location.getCurrentPositionAsync({});
+    const location = await Location.getCurrentPositionAsync({});
 
-  //   setThreads((prevThreads) =>
-  //     prevThreads.map((thread) =>
-  //       thread.id === id
-  //         ? {
-  //             ...thread,
-  //             location: [location.coords.latitude, location.coords.longitude],
-  //           }
-  //         : thread
-  //     )
-  //   );
-  // };
+    setThreads((prevThreads) =>
+      prevThreads.map((thread) =>
+        thread.id === id
+          ? {
+              ...thread,
+              location: [location.coords.latitude, location.coords.longitude],
+            }
+          : thread
+      )
+    );
+  };
 
   const renderThreadItem = ({
     item,
@@ -193,6 +196,7 @@ export default function Modal() {
             style={styles.imageFlatList}
           />
         )}
+        {/* 위치 정보 표시 */}
         {item.location && (
           <View style={styles.locationContainer}>
             <Text style={styles.locationText}>
@@ -216,7 +220,7 @@ export default function Modal() {
           <Pressable
             style={styles.actionButton}
             onPress={() => {
-              // getMyLocation(item.id);
+              getMyLocation(item.id);
             }}
           >
             <FontAwesome name="map-marker" size={24} color="#777" />
