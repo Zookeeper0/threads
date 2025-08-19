@@ -45,3 +45,11 @@ https://docs.expo.dev/versions/latest/sdk/safe-area-context/
 # 모킹 라이브러리
 
 `npm i miragejs`
+
+# 공개된 값들 저장 장소
+
+npx expo install @react-native-async-storage/async-storage
+
+# 비밀 값들 저장 장소, 운영체제에서 제공하는 보안키 저장 장소( 엑세스, 리프레쉬 등 )
+
+npx expo install expo-secure-store

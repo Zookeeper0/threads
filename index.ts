@@ -24,8 +24,8 @@ if (__DEV__) {
             refreshToken: "refreshToken",
             user: {
               id: "eastzoo",
-              username: "eastzoo",
-              email: "eastzoo@gmail.com",
+              name: "eastzoo",
+              description: "eastzoo is a developer",
               profileImage: "https://github.com/eastzoo.png",
             },
           };

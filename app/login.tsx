@@ -1,4 +1,6 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Redirect, router } from "expo-router";
+import * as SecureStore from "expo-secure-store";
 import { Alert, Pressable, StyleSheet, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -42,6 +44,14 @@ export default function Login() {
       })
       .then((data) => {
         console.log(data);
+        Promise.all([
+          SecureStore.setItemAsync("accessToken", data.accessToken),
+          SecureStore.setItemAsync("refreshToken", data.refreshToken),
+          AsyncStorage.setItem("user", JSON.stringify(data.user)),
+        ]);
+      })
+      .then(() => {
+        router.push("/(tabs)");
       })
       .catch((error) => {
         console.log(error);
