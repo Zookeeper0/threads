@@ -59,10 +59,14 @@ const AnimatedTabBarButton = ({
  * https://icons.expo.fyi/Index
  */
 export default function TabsLayout() {
+  /** ============================= state 영역 ============================= */
   const router = useRouter();
-  const isLoggedIn = true;
+  const isLoggedIn = false;
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
+  /** ============================= API 영역 ============================= */
+
+  /** ============================= 비즈니스 로직 영역 ============================= */
   const openLoginModal = () => {
     console.log("openLoginModal");
     setIsLoginModalOpen(true);
@@ -71,6 +75,16 @@ export default function TabsLayout() {
   const closeLoginModal = () => {
     setIsLoginModalOpen(false);
   };
+
+  /** 로그인 모달 닫고 로그인 페이지로 이동 */
+  const toLoginPage = () => {
+    setIsLoginModalOpen(false);
+    router.push("/login");
+  };
+
+  /** ============================= 컴포넌트 영역 ============================= */
+
+  /** ============================= useEffect 영역 ============================= */
 
   return (
     <>
@@ -220,7 +234,9 @@ export default function TabsLayout() {
               padding: 20,
             }}
           >
-            <Text>Login Modal</Text>
+            <Pressable onPress={toLoginPage}>
+              <Text>Login Modal</Text>
+            </Pressable>
             <TouchableOpacity onPress={closeLoginModal}>
               <Ionicons name="close" size={24} color="#555" />
             </TouchableOpacity>
