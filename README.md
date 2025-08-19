@@ -53,3 +53,8 @@ npx expo install @react-native-async-storage/async-storage
 # 비밀 값들 저장 장소, 운영체제에서 제공하는 보안키 저장 장소( 엑세스, 리프레쉬 등 )
 
 npx expo install expo-secure-store
+
+# RN 참고
+
+> 참고 자료
+> https://reactnative.directory/

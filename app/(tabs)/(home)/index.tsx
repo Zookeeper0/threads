@@ -1,5 +1,6 @@
 import { BlurView } from "expo-blur";
 import { usePathname, useRouter } from "expo-router";
+import { useContext } from "react";
 import {
   Dimensions,
   Image,
@@ -10,12 +11,13 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { AuthContext } from "../../_layout";
 
 export default function Index() {
   const router = useRouter();
   const pathname = usePathname();
-
-  const isLoggedIn = false;
+  const { user } = useContext(AuthContext);
+  const isLoggedIn = !!user;
 
   console.log("pathname", pathname);
 
