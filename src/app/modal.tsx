@@ -41,7 +41,7 @@ export function ListFooter({
     <View style={styles.listFooter}>
       <View style={styles.listFooterAvatar}>
         <Image
-          source={require("../assets/images/avatar.png")}
+          source={require("@/assets/images/avatar.png")}
           style={styles.avatarSmall}
         />
       </View>
