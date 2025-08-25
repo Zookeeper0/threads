@@ -1,7 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router, Stack } from "expo-router";
 import * as SecureStore from "expo-secure-store";
-import { createContext, useState } from "react";
+import { createContext, useEffect, useState } from "react";
 import { Alert } from "react-native";
 
 export interface User {
@@ -73,6 +73,15 @@ export default function RootLayout() {
       AsyncStorage.removeItem("user"),
     ]);
   };
+
+  useEffect(() => {
+    AsyncStorage.getItem("user").then((user) => {
+      if (user) {
+        setUser(user ? JSON.parse(user) : null);
+      }
+    });
+    
+  }, []);
 
   return (
     <AuthContext value={{ user, login, logout }}>

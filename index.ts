@@ -26,7 +26,7 @@ if (__DEV__) {
               id: "eastzoo",
               name: "eastzoo",
               description: "eastzoo is a developer",
-              profileImage: "https://github.com/eastzoo.png",
+              profileImageUrl: "https://github.com/eastzoo.png",
             },
           };
         } else {

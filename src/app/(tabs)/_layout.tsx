@@ -1,14 +1,15 @@
 import { Ionicons } from "@expo/vector-icons";
 import { type BottomTabBarButtonProps } from "@react-navigation/bottom-tabs";
-import { Tabs, useRouter } from "expo-router";
+import { Tabs, useRouter, usePathname } from "expo-router";
 import { useContext, useRef, useState } from "react";
 import {
-  Animated,
   Modal,
-  Pressable,
+  View,
   Text,
   TouchableOpacity,
-  View,
+  Animated,
+  Pressable,
+  useColorScheme,
 } from "react-native";
 import { AuthContext } from "../_layout";
 
@@ -18,7 +19,6 @@ const AnimatedTabBarButton = ({
   style,
   ...restProps
 }: BottomTabBarButtonProps) => {
-  const { ref, ...propsWithoutRef } = restProps;
   const scaleValue = useRef(new Animated.Value(1)).current;
 
   const handlePressOut = () => {
@@ -38,7 +38,7 @@ const AnimatedTabBarButton = ({
 
   return (
     <Pressable
-      {...propsWithoutRef}
+      {...restProps}
       onPress={onPress}
       onPressOut={handlePressOut}
       style={[
@@ -55,22 +55,16 @@ const AnimatedTabBarButton = ({
   );
 };
 
-/**
- * - 아이콘 참고 사이트
- * https://icons.expo.fyi/Index
- */
-export default function TabsLayout() {
-  /** ============================= state 영역 ============================= */
+export default function TabLayout() {
   const router = useRouter();
   const { user } = useContext(AuthContext);
   const isLoggedIn = !!user;
+  const colorScheme = useColorScheme();
+  const pathname = usePathname();
+  console.log("pathname", pathname);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
-  /** ============================= API 영역 ============================= */
-
-  /** ============================= 비즈니스 로직 영역 ============================= */
   const openLoginModal = () => {
-    console.log("openLoginModal");
     setIsLoginModalOpen(true);
   };
 
@@ -78,15 +72,10 @@ export default function TabsLayout() {
     setIsLoginModalOpen(false);
   };
 
-  /** 로그인 모달 닫고 로그인 페이지로 이동 */
   const toLoginPage = () => {
     setIsLoginModalOpen(false);
     router.push("/login");
   };
-
-  /** ============================= 컴포넌트 영역 ============================= */
-
-  /** ============================= useEffect 영역 ============================= */
 
   return (
     <>
@@ -94,6 +83,10 @@ export default function TabsLayout() {
         backBehavior="history"
         screenOptions={{
           headerShown: false,
+          tabBarStyle: {
+            backgroundColor: colorScheme === "dark" ? "#101010" : "white",
+            borderTopWidth: 0,
+          },
           tabBarButton: (props) => <AnimatedTabBarButton {...props} />,
         }}
       >
@@ -105,28 +98,32 @@ export default function TabsLayout() {
               <Ionicons
                 name="home"
                 size={24}
-                color={focused ? "black" : "gray"}
+                color={
+                  focused
+                    ? colorScheme === "dark"
+                      ? "white"
+                      : "black"
+                    : "gray"
+                }
               />
             ),
           }}
         />
         <Tabs.Screen
           name="search"
-          listeners={{
-            tabPress: (e) => {
-              if (!isLoggedIn) {
-                e.preventDefault();
-                openLoginModal();
-              }
-            },
-          }}
           options={{
             tabBarLabel: () => null,
             tabBarIcon: ({ focused }) => (
               <Ionicons
                 name="search"
                 size={24}
-                color={focused ? "black" : "gray"}
+                color={
+                  focused
+                    ? colorScheme === "dark"
+                      ? "white"
+                      : "black"
+                    : "gray"
+                }
               />
             ),
           }}
@@ -135,7 +132,7 @@ export default function TabsLayout() {
           name="add"
           listeners={{
             tabPress: (e) => {
-              // add는 페이지가 아닌 모달이 떠야하는 탭, 라우터 기능 방지
+              console.log("tabPress");
               e.preventDefault();
               if (isLoggedIn) {
                 router.navigate("/modal");
@@ -150,7 +147,13 @@ export default function TabsLayout() {
               <Ionicons
                 name="add"
                 size={24}
-                color={focused ? "black" : "gray"}
+                color={
+                  focused
+                    ? colorScheme === "dark"
+                      ? "white"
+                      : "black"
+                    : "gray"
+                }
               />
             ),
           }}
@@ -171,7 +174,13 @@ export default function TabsLayout() {
               <Ionicons
                 name="heart-outline"
                 size={24}
-                color={focused ? "black" : "gray"}
+                color={
+                  focused
+                    ? colorScheme === "dark"
+                      ? "white"
+                      : "black"
+                    : "gray"
+                }
               />
             ),
           }}
@@ -180,9 +189,11 @@ export default function TabsLayout() {
           name="[username]"
           listeners={{
             tabPress: (e) => {
+              e.preventDefault();
               if (!isLoggedIn) {
-                e.preventDefault();
                 openLoginModal();
+              } else {
+                router.navigate(`/@${user.id}`);
               }
             },
           }}
@@ -192,50 +203,37 @@ export default function TabsLayout() {
               <Ionicons
                 name="person-outline"
                 size={24}
-                color={focused ? "black" : "gray"}
+                color={
+                  focused && user?.id === pathname?.slice(2) // /@zerohch0
+                    ? colorScheme === "dark"
+                      ? "white"
+                      : "black"
+                    : "gray"
+                }
               />
             ),
           }}
         />
-        {/* 메인 화면에서 "/" 와 "/following" 페이지를 탭을통해 이동할 수 있는데 following은 탭에 표시하지 않음 
-        href: null 옵션을 추가하면 탭에 표시되지 않음 하지만 그냥 (tabs) 폴더 안에 (home) 폴더 안에 index.tsx 파일을 만들어서 탭에 표시되지 않게 할 수 있음
-      */}
-        {/* <Tabs.Screen
-        name="following"
-        options={{
-          tabBarLabel: () => null,
-          href: null,
-        }}
-      /> */}
-
-        {/* 게시글 상세 페이지 탭 안보이게 추가*/}
         <Tabs.Screen
           name="(post)/[username]/post/[postID]"
           options={{
-            tabBarLabel: () => null,
             href: null,
           }}
         />
       </Tabs>
-
       <Modal
         visible={isLoginModalOpen}
         transparent={true}
         animationType="slide"
-        onRequestClose={closeLoginModal}
       >
         <View
           style={{
             flex: 1,
             justifyContent: "flex-end",
+            backgroundColor: "rgba(0, 0, 0, 0.5)",
           }}
         >
-          <View
-            style={{
-              backgroundColor: "white",
-              padding: 20,
-            }}
-          >
+          <View style={{ backgroundColor: "white", padding: 20 }}>
             <Pressable onPress={toLoginPage}>
               <Text>Login Modal</Text>
             </Pressable>
