@@ -1,132 +1,146 @@
-import { AuthContext } from "@/app/_layout";
-import SideMenu from "@/components/SideMenu";
-import { Ionicons } from "@expo/vector-icons";
-import { BlurView } from "expo-blur";
-import { usePathname, useRouter } from "expo-router";
-import { useContext, useState } from "react";
-import {
-  Dimensions,
-  Image,
-  Pressable,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import Post, { type Post as PostType } from "@/components/Post";
+import { FlashList } from "@shopify/flash-list";
+import * as Haptics from "expo-haptics";
+import { usePathname } from "expo-router";
+import { useCallback, useContext, useRef, useState } from "react";
+import { PanResponder, StyleSheet, useColorScheme, View } from "react-native";
+import Animated, {
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
+import { AnimationContext } from "./_layout";
+
+const AnimatedFlashList = Animated.createAnimatedComponent(FlashList<PostType>);
 
 export default function Index() {
-  const router = useRouter();
-  const pathname = usePathname();
-  const { user, logout } = useContext(AuthContext);
-  const [isSideMenuOpen, setIsSideMenuOpen] = useState(false);
-  const isLoggedIn = !!user;
+  const colorScheme = useColorScheme();
+  const path = usePathname();
+  const [posts, setPosts] = useState<PostType[]>([]);
+  const scrollPosition = useSharedValue(0);
+  const isReadyToRefresh = useSharedValue(false);
+  const { pullDownPosition } = useContext(AnimationContext);
 
-  const { width, height } = Dimensions.get("window");
+  const onEndReached = useCallback(() => {
+    console.log("onEndReached", posts.at(-1)?.id);
+    fetch(`/posts?cursor=${posts.at(-1)?.id}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.posts.length > 0) {
+          setPosts((prev) => [...prev, ...data.posts]);
+        }
+      });
+  }, [posts, path]);
+
+  const onRefresh = (done: () => void) => {
+    setPosts([]);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    fetch("/posts")
+      .then((res) => res.json())
+      .then((data) => {
+        setPosts(data.posts);
+      })
+      .finally(() => {
+        done();
+      });
+  };
+
+  const onPanRelease = () => {
+    pullDownPosition.value = withTiming(isReadyToRefresh.value ? 60 : 0, {
+      duration: 180,
+    });
+    console.log("onPanRelease", isReadyToRefresh.value);
+    if (isReadyToRefresh.value) {
+      onRefresh(() => {
+        pullDownPosition.value = withTiming(0, {
+          duration: 180,
+        });
+      });
+    }
+  };
+
+  const panResponderRef = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderMove: (event, gestureState) => {
+        const max = 120;
+        pullDownPosition.value = Math.max(Math.min(gestureState.dy, max), 0);
+        console.log("pull", pullDownPosition.value);
+
+        if (
+          pullDownPosition.value >= max / 2 &&
+          isReadyToRefresh.value === false
+        ) {
+          isReadyToRefresh.value = true;
+        }
+        if (
+          pullDownPosition.value < max / 2 &&
+          isReadyToRefresh.value === true
+        ) {
+          isReadyToRefresh.value = false;
+        }
+      },
+      onPanResponderRelease: onPanRelease,
+      onPanResponderTerminate: onPanRelease,
+    })
+  );
+
+  const scrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      console.log("onScroll", event.contentOffset.y);
+      scrollPosition.value = event.contentOffset.y;
+    },
+  });
+
+  const pullDownStyles = useAnimatedStyle(() => {
+    return {
+      transform: [
+        {
+          translateY: pullDownPosition.value,
+        },
+      ],
+    };
+  });
 
   return (
-    <SafeAreaView style={styles.container}>
-      <BlurView style={styles.header} intensity={70}>
-        {isLoggedIn && (
-          <Pressable
-            style={styles.menuButton}
-            onPress={() => {
-              setIsSideMenuOpen(true);
-            }}
-          >
-            <Ionicons name="menu" size={24} color="black" />
-          </Pressable>
-        )}
-        <SideMenu
-          isVisible={isSideMenuOpen}
-          onClose={() => setIsSideMenuOpen(false)}
-        />
-        <Image
-          source={require("@/assets/images/react-logo.png")}
-          style={styles.headerLogo}
-        />
-        {!isLoggedIn && (
-          <TouchableOpacity style={styles.loginButton}>
-            <Text style={styles.loginButtonText}>로그인</Text>
-          </TouchableOpacity>
-        )}
-      </BlurView>
-      {isLoggedIn && (
-        <View style={styles.tabContainer}>
-          <View style={styles.tab}>
-            <TouchableOpacity onPress={() => router.push(`/`)}>
-              <Text style={{ color: pathname === "/" ? "red" : "black" }}>
-                For you
-              </Text>
-            </TouchableOpacity>
-          </View>
-          <View style={styles.tab}>
-            <TouchableOpacity onPress={() => router.push(`/following`)}>
-              <Text style={{ color: pathname === "/" ? "black" : "red" }}>
-                Following
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
-      <View>
-        <TouchableOpacity onPress={() => router.push(`/@eastzoo/post/1`)}>
-          <Text>게시글1</Text>
-        </TouchableOpacity>
-      </View>
-      <View>
-        <TouchableOpacity onPress={() => router.push(`/@eastzoo/post/2`)}>
-          <Text>게시글2</Text>
-        </TouchableOpacity>
-      </View>
-      <View>
-        <TouchableOpacity onPress={() => router.push(`/@eastzoo/post/3`)}>
-          <Text>게시글3</Text>
-        </TouchableOpacity>
-      </View>
-    </SafeAreaView>
+    <Animated.View
+      style={[
+        styles.container,
+        colorScheme === "dark" ? styles.containerDark : styles.containerLight,
+        pullDownStyles,
+      ]}
+      {...panResponderRef.current.panHandlers}
+    >
+      <AnimatedFlashList
+        refreshControl={<View />}
+        data={posts}
+        nestedScrollEnabled={true}
+        onScroll={scrollHandler}
+        scrollEventThrottle={16}
+        renderItem={({ item }) => <Post item={item} />}
+        onEndReached={onEndReached}
+        onEndReachedThreshold={2}
+        estimatedItemSize={350}
+      />
+    </Animated.View>
   );
 }
 
-/**
- * 인라인 으로 css를 넣으면 리액트가 렌더링할때마다 성능의 영향이 가는데
- * 아래와 같이 StyleSheet를 사용하면 성능 영향이 적음 알아서 최적화 해줌
- */
 const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  tabContainer: {
-    flexDirection: "row",
+  containerLight: {
+    backgroundColor: "white",
   },
-  tab: {
-    flex: 1,
-    alignItems: "center",
+  containerDark: {
+    backgroundColor: "#101010",
   },
-  header: {
-    alignItems: "center",
+  textLight: {
+    color: "black",
   },
-  headerLogo: {
-    width: 42, // DP, DIP 단위 디바이스 픽셀 단위
-    height: 42,
-  },
-  loginButton: {
-    position: "absolute",
-    right: 10,
-    top: 0,
-    backgroundColor: "black",
-    borderWidth: 1,
-    borderColor: "black",
-    paddingVertical: 8,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-  },
-  loginButtonText: {
+  textDark: {
     color: "white",
-  },
-  menuButton: {
-    position: "absolute",
-    left: 10,
-    top: 0,
   },
 });

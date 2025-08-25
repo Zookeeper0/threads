@@ -1,24 +1,33 @@
 import { Ionicons } from "@expo/vector-icons";
 import { type BottomTabBarButtonProps } from "@react-navigation/bottom-tabs";
-import { Tabs, useRouter, usePathname } from "expo-router";
+import { Tabs, usePathname, useRouter } from "expo-router";
 import { useContext, useRef, useState } from "react";
 import {
+  Animated,
   Modal,
-  View,
+  Pressable,
+  StyleProp,
   Text,
   TouchableOpacity,
-  Animated,
-  Pressable,
   useColorScheme,
+  View,
+  ViewStyle,
 } from "react-native";
 import { AuthContext } from "../_layout";
+
+interface AnimatedTabBarButtonProps extends BottomTabBarButtonProps {
+  children: React.ReactNode;
+  onPress?: () => void;
+  style?: StyleProp<ViewStyle>;
+  restProps?: any;
+}
 
 const AnimatedTabBarButton = ({
   children,
   onPress,
   style,
   ...restProps
-}: BottomTabBarButtonProps) => {
+}: AnimatedTabBarButtonProps) => {
   const scaleValue = useRef(new Animated.Value(1)).current;
 
   const handlePressOut = () => {
@@ -38,7 +47,7 @@ const AnimatedTabBarButton = ({
 
   return (
     <Pressable
-      {...restProps}
+      {...(restProps as any)}
       onPress={onPress}
       onPressOut={handlePressOut}
       style={[
@@ -87,7 +96,7 @@ export default function TabLayout() {
             backgroundColor: colorScheme === "dark" ? "#101010" : "white",
             borderTopWidth: 0,
           },
-          tabBarButton: (props) => <AnimatedTabBarButton {...props} />,
+          tabBarButton: (props: any) => <AnimatedTabBarButton {...props} />,
         }}
       >
         <Tabs.Screen

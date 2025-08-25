@@ -1,5 +1,4 @@
 import NotFound from "@/app/+not-found";
-import { AuthContext } from "@/app/_layout";
 import ActivityItem from "@/components/Activity";
 import SideMenu from "@/components/SideMenu";
 import { Ionicons } from "@expo/vector-icons";
@@ -15,18 +14,18 @@ import {
   useColorScheme,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { AuthContext } from "../../_layout";
 
 export default function Index() {
   const router = useRouter();
-  const { user, logout } = useContext(AuthContext);
-  const [isSideMenuOpen, setIsSideMenuOpen] = useState(false);
-  const isLoggedIn = !!user;
   const pathname = usePathname();
+  const insets = useSafeAreaInsets();
+  const { user } = useContext(AuthContext);
   const colorScheme = useColorScheme();
+  const isLoggedIn = !!user;
+  const [isSideMenuOpen, setIsSideMenuOpen] = useState(false);
 
-  // 탭에 보이지 않는 페이지에 접근하려고 할 때 404 페이지로 리다이렉트
-  // ![tabs] 다이나믹 라우터를 쓰면 모든 페이지가 통과하기 때문에 아래와 같이 검증 코드를 넣어주어야한다.
   if (
     ![
       "/activity",
@@ -42,8 +41,19 @@ export default function Index() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={[styles.header]}>
+    <View
+      style={[
+        styles.container,
+        { paddingTop: insets.top, paddingBottom: insets.bottom },
+        colorScheme === "dark" ? styles.containerDark : styles.containerLight,
+      ]}
+    >
+      <View
+        style={[
+          styles.header,
+          colorScheme === "dark" ? styles.headerDark : styles.headerLight,
+        ]}
+      >
         {isLoggedIn && (
           <Pressable
             style={styles.menuButton}
@@ -51,7 +61,11 @@ export default function Index() {
               setIsSideMenuOpen(true);
             }}
           >
-            <Ionicons name="menu" size={24} color={"black"} />
+            <Ionicons
+              name="menu"
+              size={24}
+              color={colorScheme === "dark" ? "gray" : "black"}
+            />
           </Pressable>
         )}
         <Image
@@ -306,7 +320,7 @@ export default function Index() {
           avatar="https://randomuser.me/api/portraits/men/1.jpg"
         />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 

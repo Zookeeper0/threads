@@ -58,3 +58,7 @@ npx expo install expo-secure-store
 
 > 참고 자료
 > https://reactnative.directory/
+
+# 탭바 네비게이션에 영향 받지 않는 윗부분의 프로필이나 페이지들은 \_layout으로 많이 옮기는 느낌
+
+- 그래서 index.tsx에는 게시글 리스트나 데이터 같은 부분들 렌더링
