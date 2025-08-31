@@ -1,15 +1,21 @@
 import SideMenu from "@/components/SideMenu";
 import { Ionicons } from "@expo/vector-icons";
-import { useContext, useState } from "react";
+import { NaverMapView, Region } from "@mj-studio/react-native-naver-map";
+import * as Location from "expo-location";
+import { useContext, useEffect, useState } from "react";
 import {
+  Alert,
   Image,
   Pressable,
   StyleSheet,
-  TextInput,
+  Text,
   useColorScheme,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { AuthContext } from "../_layout";
 
 export default function Index() {
@@ -18,10 +24,71 @@ export default function Index() {
   const isLoggedIn = !!user;
   const [isSideMenuOpen, setIsSideMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [locationPermission, setLocationPermission] = useState<boolean>(false);
+  const [currentLocation, setCurrentLocation] = useState<Region | null>(null);
   const colorScheme = useColorScheme();
 
+  const jejuRegion: Region = {
+    latitude: 33.20530773,
+    longitude: 126.14656715029,
+    latitudeDelta: 0.38,
+    longitudeDelta: 0.8,
+  };
+
+  // 위치 권한 요청 및 현재 위치 가져오기
+  useEffect(() => {
+    (async () => {
+      try {
+        // 위치 권한 상태 확인
+        let { status } = await Location.getForegroundPermissionsAsync();
+
+        if (status !== "granted") {
+          // 권한이 없으면 요청
+          const { status: newStatus } =
+            await Location.requestForegroundPermissionsAsync();
+          if (newStatus !== "granted") {
+            Alert.alert(
+              "위치 권한 필요",
+              "네이버 맵을 사용하려면 위치 권한이 필요합니다. 설정에서 위치 권한을 허용해주세요.",
+              [
+                { text: "취소", style: "cancel" },
+                { text: "설정으로 이동", onPress: () => {} },
+              ]
+            );
+            return;
+          }
+          status = newStatus;
+        }
+
+        if (status === "granted") {
+          setLocationPermission(true);
+
+          // 현재 위치 가져오기
+          const location = await Location.getCurrentPositionAsync({
+            accuracy: Location.Accuracy.Balanced,
+          });
+
+          const newRegion: Region = {
+            latitude: location.coords.latitude,
+            longitude: location.coords.longitude,
+            latitudeDelta: 0.01,
+            longitudeDelta: 0.01,
+          };
+
+          setCurrentLocation(newRegion);
+        }
+      } catch (error) {
+        console.error("위치 권한 요청 중 오류:", error);
+        Alert.alert("오류", "위치 정보를 가져오는 중 오류가 발생했습니다.");
+      }
+    })();
+  }, []);
+
+  // 네이버 맵 초기 카메라 설정 (현재 위치가 있으면 사용, 없으면 제주도)
+  const initialCamera = currentLocation || jejuRegion;
+
   return (
-    <View
+    <SafeAreaView
       style={[
         styles.container,
         { paddingTop: insets.top, paddingBottom: insets.bottom },
@@ -57,42 +124,42 @@ export default function Index() {
           onClose={() => setIsSideMenuOpen(false)}
         />
       </View>
-      <View
-        style={[
-          styles.searchBarArea,
-          colorScheme === "dark"
-            ? styles.searchBarAreaDark
-            : styles.searchBarAreaLight,
-        ]}
-      >
-        <View
-          style={[
-            styles.searchBar,
-            colorScheme === "dark"
-              ? styles.searchBarDark
-              : styles.searchBarLight,
-          ]}
-        >
+
+      {/* 위치 권한이 허용된 경우에만 네이버 맵 표시 */}
+      {locationPermission ? (
+        <NaverMapView
+          style={{ flex: 1 }}
+          initialCamera={initialCamera}
+          isShowLocationButton={true}
+        />
+      ) : (
+        <View style={styles.permissionContainer}>
           <Ionicons
-            name="search"
-            size={24}
+            name="location-outline"
+            size={64}
             color={colorScheme === "dark" ? "gray" : "black"}
           />
-          <TextInput
+          <Text
             style={[
-              styles.searchInput,
+              styles.permissionText,
               colorScheme === "dark"
-                ? styles.searchInputDark
-                : styles.searchInputLight,
+                ? styles.permissionTextDark
+                : styles.permissionText,
             ]}
-            placeholder="Search"
-            placeholderTextColor={colorScheme === "dark" ? "gray" : "black"}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
+          >
+            위치 권한이 필요합니다
+          </Text>
+          <Pressable
+            style={styles.permissionButton}
+            onPress={() => {
+              Location.requestForegroundPermissionsAsync();
+            }}
+          >
+            <Text style={styles.permissionButtonText}>권한 요청</Text>
+          </Pressable>
         </View>
-      </View>
-    </View>
+      )}
+    </SafeAreaView>
   );
 }
 
@@ -164,5 +231,31 @@ const styles = StyleSheet.create({
   },
   searchInputDark: {
     color: "white",
+  },
+  permissionContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "white", // Default to light for permission screen
+  },
+  permissionText: {
+    marginTop: 20,
+    fontSize: 18,
+    textAlign: "center",
+  },
+  permissionTextDark: {
+    color: "white",
+  },
+  permissionButton: {
+    marginTop: 30,
+    backgroundColor: "#007bff",
+    paddingVertical: 15,
+    paddingHorizontal: 30,
+    borderRadius: 10,
+  },
+  permissionButtonText: {
+    color: "white",
+    fontSize: 18,
+    fontWeight: "bold",
   },
 });

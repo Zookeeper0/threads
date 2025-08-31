@@ -1,4 +1,5 @@
 import { AuthContext } from "@/app/_layout";
+import DateRecordModalFigma from "@/components/DateRecordModalFigma";
 import SideMenu from "@/components/SideMenu";
 import { Ionicons } from "@expo/vector-icons";
 import {
@@ -47,6 +48,7 @@ export default function TabLayout() {
   const colorScheme = useColorScheme();
   const insets = useSafeAreaInsets();
   const [isSideMenuOpen, setIsSideMenuOpen] = useState(false);
+  const [isDateRecordModalOpen, setIsDateRecordModalOpen] = useState(false);
   const { user } = useContext(AuthContext);
   const isLoggedIn = !!user;
   const pullDownPosition = useSharedValue(0);
@@ -56,6 +58,7 @@ export default function TabLayout() {
       transform: [{ rotate: `${pullDownPosition.value}deg` }],
     };
   });
+  console.log("user!!", user);
 
   return (
     <AnimationContext value={{ pullDownPosition }}>
@@ -121,41 +124,83 @@ export default function TabLayout() {
           )}
         </BlurView>
         {isLoggedIn ? (
-          <MaterialTopTabs
-            screenOptions={{
-              lazy: true,
-              tabBarStyle: {
-                backgroundColor: colorScheme === "dark" ? "#101010" : "white",
-                shadowColor: "transparent",
-                position: "relative",
-              },
-              tabBarLabelStyle: {
-                fontSize: 16,
-                fontWeight: "bold",
-              },
-              tabBarPressColor: "transparent",
-              tabBarActiveTintColor: colorScheme === "dark" ? "white" : "#555",
-              tabBarIndicatorStyle: {
-                backgroundColor: colorScheme === "dark" ? "white" : "black",
-                height: 1,
-              },
-              tabBarIndicatorContainerStyle: {
-                backgroundColor: colorScheme === "dark" ? "#aaa" : "#555",
-                position: "absolute",
-                top: 49,
-                height: 1,
-              },
-            }}
-          >
-            <MaterialTopTabs.Screen
-              name="index"
-              options={{ title: "For You" }}
+          <>
+            {/* 데이트 기록하기 버튼 */}
+            <View style={styles.dateRecordContainer}>
+              <TouchableOpacity
+                style={[
+                  styles.dateRecordButton,
+                  colorScheme === "dark"
+                    ? styles.dateRecordButtonDark
+                    : styles.dateRecordButtonLight,
+                ]}
+                onPress={() => {
+                  console.log("데이트 기록하기 버튼 클릭");
+                  setIsDateRecordModalOpen(true);
+                }}
+              >
+                <Ionicons
+                  name="add"
+                  size={20}
+                  color={colorScheme === "dark" ? "black" : "white"}
+                  style={styles.dateRecordIcon}
+                />
+                <Text
+                  style={[
+                    styles.dateRecordText,
+                    colorScheme === "dark"
+                      ? styles.dateRecordTextDark
+                      : styles.dateRecordTextLight,
+                  ]}
+                >
+                  오늘 데이트 기록하기
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <MaterialTopTabs
+              screenOptions={{
+                lazy: true,
+                tabBarStyle: {
+                  backgroundColor: colorScheme === "dark" ? "#101010" : "white",
+                  shadowColor: "transparent",
+                  position: "relative",
+                },
+                tabBarLabelStyle: {
+                  fontSize: 16,
+                  fontWeight: "bold",
+                },
+                tabBarPressColor: "transparent",
+                tabBarActiveTintColor:
+                  colorScheme === "dark" ? "white" : "#555",
+                tabBarIndicatorStyle: {
+                  backgroundColor: colorScheme === "dark" ? "white" : "black",
+                  height: 1,
+                },
+                tabBarIndicatorContainerStyle: {
+                  backgroundColor: colorScheme === "dark" ? "#aaa" : "#555",
+                  position: "absolute",
+                  top: 49,
+                  height: 1,
+                },
+              }}
+            >
+              <MaterialTopTabs.Screen
+                name="index"
+                options={{ title: "For You" }}
+              />
+              <MaterialTopTabs.Screen
+                name="following"
+                options={{ title: "Following" }}
+              />
+            </MaterialTopTabs>
+
+            {/* 데이트 기록 모달 */}
+            <DateRecordModalFigma
+              visible={isDateRecordModalOpen}
+              onClose={() => setIsDateRecordModalOpen(false)}
             />
-            <MaterialTopTabs.Screen
-              name="following"
-              options={{ title: "Following" }}
-            />
-          </MaterialTopTabs>
+          </>
         ) : (
           <Slot />
         )}
@@ -211,6 +256,47 @@ const styles = StyleSheet.create({
     color: "white",
   },
   loginButtonTextDark: {
+    color: "black",
+  },
+  dateRecordContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "#ddd",
+  },
+  dateRecordButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 25,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  dateRecordButtonLight: {
+    backgroundColor: "#E8E8E8",
+  },
+  dateRecordButtonDark: {
+    backgroundColor: "#FF8FB1",
+  },
+  dateRecordIcon: {
+    marginRight: 8,
+  },
+  dateRecordText: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  dateRecordTextLight: {
+    color: "white",
+  },
+  dateRecordTextDark: {
     color: "black",
   },
 });

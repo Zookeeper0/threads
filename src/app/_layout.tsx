@@ -34,35 +34,65 @@ export default function RootLayout() {
 
   const login = () => {
     console.log("login");
-    fetch("/login", {
-      method: "POST",
-      body: JSON.stringify({
-        username: "eastzoo",
-        password: "1234",
-      }),
-    })
-      .then((res) => {
-        console.log(res);
-        if (res.status >= 400) {
-          throw Alert.alert("Error", "Invalid credentials");
-        }
-        return res.json();
+
+    // 개발 환경에서는 MirageJS 서버 사용, 실제 기기에서는 하드코딩된 로그인 처리
+    if (__DEV__) {
+      fetch("/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username: "eastzoo",
+          password: "1234",
+        }),
       })
-      .then((data) => {
-        console.log(data);
-        setUser(data.user);
-        Promise.all([
-          SecureStore.setItemAsync("accessToken", data.accessToken),
-          SecureStore.setItemAsync("refreshToken", data.refreshToken),
-          AsyncStorage.setItem("user", JSON.stringify(data.user)),
-        ]);
-      })
-      .then(() => {
+        .then((res) => {
+          console.log("login res", res);
+          if (res.status >= 400) {
+            throw new Error("Invalid credentials");
+          }
+          return res.json();
+        })
+        .then((data) => {
+          console.log("login data", data);
+          setUser(data.user);
+          Promise.all([
+            SecureStore.setItemAsync("accessToken", data.accessToken),
+            SecureStore.setItemAsync("refreshToken", data.refreshToken),
+            AsyncStorage.setItem("user", JSON.stringify(data.user)),
+          ]);
+        })
+        .then(() => {
+          router.push("/(tabs)");
+        })
+        .catch((error) => {
+          console.log("login error", error);
+          Alert.alert("Error", "로그인에 실패했습니다.");
+        });
+    } else {
+      // 실제 기기에서는 하드코딩된 로그인 처리
+      const mockUser = {
+        id: "eastzoo",
+        name: "eastzoo",
+        description: "🐢 lover, programmer, youtuber",
+        profileImageUrl: "https://avatars.githubusercontent.com/u/885857?v=4",
+      };
+
+      const mockTokens = {
+        accessToken: "mock-access-token",
+        refreshToken: "mock-refresh-token",
+      };
+
+      setUser(mockUser);
+      Promise.all([
+        SecureStore.setItemAsync("accessToken", mockTokens.accessToken),
+        SecureStore.setItemAsync("refreshToken", mockTokens.refreshToken),
+        AsyncStorage.setItem("user", JSON.stringify(mockUser)),
+      ]).then(() => {
         router.push("/(tabs)");
-      })
-      .catch((error) => {
-        console.log(error);
       });
+    }
   };
 
   const logout = () => {
@@ -80,11 +110,10 @@ export default function RootLayout() {
         setUser(user ? JSON.parse(user) : null);
       }
     });
-    
   }, []);
 
   return (
-    <AuthContext value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, login, logout }}>
       <Stack
         screenOptions={{
           headerShown: false,
@@ -96,6 +125,6 @@ export default function RootLayout() {
       모달 표현 방식으로 모달을 띄우게 부모 레이아웃에서 띄우게 함*/}
         <Stack.Screen name="modal" options={{ presentation: "modal" }} />
       </Stack>
-    </AuthContext>
+    </AuthContext.Provider>
   );
 }
