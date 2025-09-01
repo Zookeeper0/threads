@@ -1,19 +1,22 @@
+import { locationSearchName } from "@/api/location/locationApi";
 import { ModalCommonProps } from "@/types/modal.types";
 import { Ionicons } from "@expo/vector-icons";
+import { useMutation } from "@tanstack/react-query";
 import * as ImagePicker from "expo-image-picker";
 import * as MediaLibrary from "expo-media-library";
 import * as React from "react";
 import {
+  ActivityIndicator,
   Alert,
   Image,
   Modal,
   ScrollView,
-  StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { styles } from "./dateRecordModalFigma.style";
 
 interface ImageWithLocation {
   uri: string;
@@ -35,6 +38,7 @@ interface LocationGroup {
     address?: string;
   };
   count: number;
+  placeName?: string; // 장소명 추가
 }
 
 type CoordsDate = {
@@ -43,21 +47,110 @@ type CoordsDate = {
   date?: string;
 };
 
-const DateRecordModalFigma: React.FC<ModalCommonProps> = ({
+interface DateRecordModalFigmaProps extends ModalCommonProps {
+  onLoadingChange?: (loading: boolean) => void;
+}
+
+// API 응답 타입 정의
+interface LocationSearchResponse {
+  place_name: string;
+  // 다른 필드들도 있을 수 있음
+}
+
+// API 요청 타입 정의
+interface LocationSearchRequest {
+  latitude: number;
+  longitude: number;
+}
+
+const DateRecordModalFigma: React.FC<DateRecordModalFigmaProps> = ({
   visible,
   onClose,
+  onLoadingChange,
 }) => {
   const [selectedImages, setSelectedImages] = React.useState<
     ImageWithLocation[]
   >([]);
   const [isLoading, setIsLoading] = React.useState(false);
 
-  // 모달이 열리면 자동으로 이미지 선택 시작
+  // 로딩 상태 변경 시 상위 컴포넌트에 알림
+  React.useEffect(() => {
+    onLoadingChange?.(isLoading);
+  }, [isLoading, onLoadingChange]);
+
+  // 모달이 닫히면 자동으로 이미지 선택 시작
   React.useEffect(() => {
     if (visible && selectedImages.length === 0) {
       handlePickImages();
     }
   }, [visible]);
+
+  // 장소명 가져오기 mutation
+  const placeNameMutation = useMutation<
+    any, // 실제 응답 타입이 { data: [{ placeName: string, ... }], ... } 형태이므로 any로 둡니다.
+    Error,
+    LocationSearchRequest
+  >({
+    mutationFn: async (variables) => {
+      console.log("mutationFn 호출됨, variables:", variables);
+      const response = await locationSearchName(variables);
+      console.log("locationSearchName 응답:", response);
+      return response; // 전체 응답 반환
+    },
+    onSuccess: (data, variables) => {
+      console.log("API 성공:", data, variables);
+      // data.data[0].placeName을 추출하여 저장
+      const firstPlaceName =
+        data && data.data && Array.isArray(data.data) && data.data.length > 0
+          ? data.data[0].placeName || data.data[0].name // placeName이 없으면 name 사용
+          : "알 수 없는 장소";
+      setLocationGroups((prev) =>
+        prev.map((group) =>
+          group.representativeLocation.latitude === variables.latitude &&
+          group.representativeLocation.longitude === variables.longitude
+            ? { ...group, placeName: firstPlaceName }
+            : group
+        )
+      );
+    },
+    onError: (error, variables) => {
+      console.error("API 실패:", error, variables);
+      // 실패 시 "알 수 없는 장소"로 설정
+      setLocationGroups((prev) =>
+        prev.map((group) =>
+          group.representativeLocation.latitude === variables.latitude &&
+          group.representativeLocation.longitude === variables.longitude
+            ? { ...group, placeName: "알 수 없는 장소" }
+            : group
+        )
+      );
+    },
+  });
+
+  /**
+   * 모든 그룹의 장소명을 가져오는 함수
+   */
+  const fetchAllPlaceNames = (groups: LocationGroup[]) => {
+    console.log("장소명 가져오기 시작, 그룹 수:", groups.length);
+    console.log("전체 그룹 데이터:", JSON.stringify(groups, null, 2));
+
+    // 각 그룹에 대해 mutation 실행
+    groups.forEach((group, index) => {
+      const locationData = {
+        latitude: group.representativeLocation.latitude,
+        longitude: group.representativeLocation.longitude,
+      };
+
+      console.log(`그룹 ${index + 1} 처리:`, locationData);
+      console.log(
+        `그룹 ${index + 1} representativeLocation:`,
+        group.representativeLocation
+      );
+
+      // mutation 호출
+      placeNameMutation.mutate(locationData);
+    });
+  };
 
   /**
    * 1) ImagePicker가 돌려주는 EXIF에서 좌표/날짜 얻기 (플랫폼별 분기)
@@ -199,12 +292,15 @@ const DateRecordModalFigma: React.FC<ModalCommonProps> = ({
       const result: any = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsMultipleSelection: true,
-        selectionLimit: Math.max(1, 9 - selectedImages.length),
+        selectionLimit: Math.max(1, 15 - selectedImages.length),
         quality: 0.9,
         exif: true, // ★ 핵심: EXIF 요청
       });
 
-      if (!result.canceled || result.assets?.length) {
+      if (!result.canceled && result.assets?.length) {
+        // 먼저 로딩 시작
+        setIsLoading(true);
+
         const newImagesBase: ImageWithLocation[] =
           result.assets?.map((asset: any) => ({
             uri: asset.uri,
@@ -215,66 +311,67 @@ const DateRecordModalFigma: React.FC<ModalCommonProps> = ({
               undefined,
           })) ?? [];
 
-        setSelectedImages((prev) => [...prev, ...newImagesBase].slice(0, 9));
+        // 기본 이미지 정보 먼저 추가
+        // setSelectedImages((prev) => [...prev, ...newImagesBase].slice(0, 9));
 
-        if (newImagesBase.length > 0) {
-          setIsLoading(true);
+        // EXIF 및 메타데이터 처리
+        const imagesWithMeta = await Promise.all(
+          (result.assets ?? []).map(async (asset: any) => {
+            // 1차: EXIF에서 시도
+            const fromExif = tryGetFromExif(asset.exif);
 
-          const imagesWithMeta = await Promise.all(
-            (result.assets ?? []).map(async (asset: any) => {
-              // 1차: EXIF에서 시도
-              const fromExif = tryGetFromExif(asset.exif);
+            // 2차: MediaLibrary에서 보완
+            const fromML =
+              typeof fromExif.latitude === "number" &&
+              typeof fromExif.longitude === "number" &&
+              fromExif.date
+                ? {}
+                : await tryGetFromMediaLibrary(asset.assetId);
 
-              // 2차: MediaLibrary에서 보완
-              const fromML =
-                typeof fromExif.latitude === "number" &&
-                typeof fromExif.longitude === "number" &&
-                fromExif.date
-                  ? {}
-                  : await tryGetFromMediaLibrary(asset.assetId);
+            const latitude =
+              fromExif.latitude ?? (fromML.latitude as number | undefined);
+            const longitude =
+              fromExif.longitude ?? (fromML.longitude as number | undefined);
+            const date =
+              fromExif.date ?? fromML.date ?? new Date().toISOString();
 
-              const latitude =
-                fromExif.latitude ?? (fromML.latitude as number | undefined);
-              const longitude =
-                fromExif.longitude ?? (fromML.longitude as number | undefined);
-              const date =
-                fromExif.date ?? fromML.date ?? new Date().toISOString();
+            // 주소 문자열(현재는 좌표 문자열로)
+            const address = toLatLngLabel(latitude, longitude);
 
-              // 주소 문자열(현재는 좌표 문자열로)
-              const address = toLatLngLabel(latitude, longitude);
+            const enriched: ImageWithLocation = {
+              uri: asset.uri,
+              filename:
+                asset.fileName ||
+                asset.filename ||
+                asset.uri.split("/").pop() ||
+                undefined,
+              date,
+              location:
+                typeof latitude === "number" && typeof longitude === "number"
+                  ? { latitude, longitude, address }
+                  : undefined,
+            };
 
-              const enriched: ImageWithLocation = {
-                uri: asset.uri,
-                filename:
-                  asset.fileName ||
-                  asset.filename ||
-                  asset.uri.split("/").pop() ||
-                  undefined,
-                date,
-                location:
-                  typeof latitude === "number" && typeof longitude === "number"
-                    ? { latitude, longitude, address }
-                    : undefined,
-              };
+            return enriched;
+          })
+        );
 
-              return enriched;
-            })
-          );
+        // 기존 배열에 매칭하여 덮어쓰기
+        setSelectedImages((prev) => {
+          const mapByUri = new Map(prev.map((p) => [p.uri, p]));
+          for (const item of imagesWithMeta) {
+            mapByUri.set(item.uri, {
+              ...(mapByUri.get(item.uri) ?? {}),
+              ...item,
+            });
+          }
+          return Array.from(mapByUri.values()).slice(0, 15);
+        });
 
-          // 기존 배열에 매칭하여 덮어쓰기
-          setSelectedImages((prev) => {
-            const mapByUri = new Map(prev.map((p) => [p.uri, p]));
-            for (const item of imagesWithMeta) {
-              mapByUri.set(item.uri, {
-                ...(mapByUri.get(item.uri) ?? {}),
-                ...item,
-              });
-            }
-            return Array.from(mapByUri.values()).slice(0, 9);
-          });
-
-          setIsLoading(false);
-        }
+        // ★ 렌더 커밋(그룹화 포함) 이후에 로더 내리기
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => setIsLoading(false));
+        });
       }
     } catch (error) {
       console.error("이미지 선택 중 오류:", error);
@@ -297,18 +394,20 @@ const DateRecordModalFigma: React.FC<ModalCommonProps> = ({
       if (!result.canceled && result.assets?.[0]) {
         const a = result.assets[0];
 
+        // 먼저 로딩 시작
+        setIsLoading(true);
+
         const base: ImageWithLocation = {
           uri: a.uri,
           filename:
             a.fileName || a.fileName || a.uri.split("/").pop() || undefined,
         };
-        setSelectedImages((prev) => [...prev, base].slice(0, 9));
 
-        setIsLoading(true);
+        // 기본 이미지 정보 먼저 추가
+        // setSelectedImages((prev) => [...prev, base].slice(0, 9));
 
-        // 1차 EXIF
+        // EXIF 및 메타데이터 처리
         const fromExif = tryGetFromExif(a.exif);
-        // 2차 ML
         const fromML =
           typeof fromExif.latitude === "number" &&
           typeof fromExif.longitude === "number" &&
@@ -333,11 +432,13 @@ const DateRecordModalFigma: React.FC<ModalCommonProps> = ({
               : undefined,
         };
 
-        setSelectedImages((prev) =>
-          prev.map((img) => (img.uri === base.uri ? withLoc : img))
-        );
+        // ★ 메타 완료된 객체로 한 번에 추가
+        setSelectedImages((prev) => [...prev, withLoc].slice(0, 15));
 
-        setIsLoading(false);
+        // ★ 커밋 뒤 로더 해제
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => setIsLoading(false));
+        });
       }
     } catch (error) {
       console.error("사진 촬영 중 오류:", error);
@@ -347,6 +448,13 @@ const DateRecordModalFigma: React.FC<ModalCommonProps> = ({
 
   const handleRemoveImage = (index: number) => {
     setSelectedImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  // 모달이 닫힐 때 모든 상태값 초기화
+  const handleClose = () => {
+    setSelectedImages([]);
+    setIsLoading(false);
+    onClose();
   };
 
   // 위경도를 기준으로 이미지 그룹화 (0.001도 차이 내는 것을 같은 장소로 판단)
@@ -399,7 +507,23 @@ const DateRecordModalFigma: React.FC<ModalCommonProps> = ({
     return groups;
   };
 
-  const locationGroups = groupImagesByLocation(selectedImages);
+  // 그룹화된 이미지들
+  const [locationGroups, setLocationGroups] = React.useState<LocationGroup[]>(
+    []
+  );
+
+  // 이미지가 변경될 때마다 그룹화하고 장소명 가져오기
+  React.useEffect(() => {
+    const groups = groupImagesByLocation(selectedImages);
+
+    // 그룹 설정
+    setLocationGroups(groups);
+
+    // 장소명 가져오기
+    if (groups.length > 0) {
+      fetchAllPlaceNames(groups);
+    }
+  }, [selectedImages]);
 
   const renderLocationGroup = (group: LocationGroup, index: number) => {
     const firstImage = group.images[0];
@@ -422,6 +546,13 @@ const DateRecordModalFigma: React.FC<ModalCommonProps> = ({
                 <Text style={styles.text8}>
                   {group.count > 1 ? `${group.count}장의 사진` : "1장의 사진"}
                 </Text>
+                {group.placeName && (
+                  <Text
+                    style={[styles.text9, styles.textTypo, { marginTop: 4 }]}
+                  >
+                    {group.placeName}
+                  </Text>
+                )}
               </View>
               <View style={styles.frame}>
                 <Text style={[styles.text9, styles.textTypo]}>
@@ -502,7 +633,7 @@ const DateRecordModalFigma: React.FC<ModalCommonProps> = ({
   };
 
   const renderAddImageButton = () => {
-    if (selectedImages.length >= 9) return null;
+    if (selectedImages.length >= 15) return null;
 
     return (
       <View style={[styles.frameParent4, styles.frameParentSpaceBlock]}>
@@ -531,11 +662,23 @@ const DateRecordModalFigma: React.FC<ModalCommonProps> = ({
       animationType="slide"
       transparent={false}
       visible={visible}
-      onRequestClose={onClose}
+      onRequestClose={handleClose}
     >
       <SafeAreaView style={styles.parent}>
+        {/* 간단한 로딩 화면 */}
+        {isLoading && (
+          <View style={styles.loadingOverlay}>
+            <View style={styles.loadingContent}>
+              <ActivityIndicator size="large" color="#FF6B9D" />
+              <Text style={styles.loadingText}>
+                사진에서 날짜와 장소를 추출하고 있어요...
+              </Text>
+            </View>
+          </View>
+        )}
+
         <View style={styles.header}>
-          <TouchableOpacity onPress={onClose} style={styles.backButton}>
+          <TouchableOpacity onPress={handleClose} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color="#666" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>2025년 8월 11일</Text>
@@ -602,7 +745,7 @@ const DateRecordModalFigma: React.FC<ModalCommonProps> = ({
 
         {/* 다음 버튼 - 하단 고정 */}
         <View style={styles.bottomButtonContainer}>
-          <TouchableOpacity style={styles.nextButton} onPress={onClose}>
+          <TouchableOpacity style={styles.nextButton} onPress={handleClose}>
             <Text style={styles.nextButtonText}>다음</Text>
           </TouchableOpacity>
         </View>
@@ -610,408 +753,5 @@ const DateRecordModalFigma: React.FC<ModalCommonProps> = ({
     </Modal>
   );
 };
-
-const styles = StyleSheet.create({
-  parent: {
-    flex: 1,
-  },
-  iconLayout: {
-    width: 16,
-    height: 16,
-  },
-  textTypo3: {
-    lineHeight: 20,
-    fontSize: 14,
-    letterSpacing: -0.3,
-    textAlign: "left",
-    fontFamily: "Pretendard",
-  },
-  frameParentSpaceBlock: {
-    paddingVertical: 16,
-    paddingHorizontal: 8,
-    borderRadius: 16,
-    gap: 8,
-  },
-  textTypo: {
-    color: "#525252",
-    lineHeight: 16,
-    letterSpacing: -0.2,
-    fontSize: 12,
-    textAlign: "left",
-    fontFamily: "Pretendard",
-  },
-  textTypo1: {
-    lineHeight: 16,
-    letterSpacing: -0.2,
-    textAlign: "left",
-    fontFamily: "Pretendard",
-  },
-  frameLayout: {
-    height: 80,
-    backgroundColor: "#d9d9d9",
-    borderRadius: 8,
-    overflow: "hidden",
-  },
-  frameParentFlexBox: {
-    gap: 10,
-    alignSelf: "stretch",
-    flexDirection: "row",
-  },
-  wrapperFlexBox: {
-    paddingVertical: 11,
-    paddingHorizontal: 46,
-    backgroundColor: "#f0f0f0",
-    borderRadius: 8,
-    overflow: "hidden",
-    justifyContent: "center",
-    alignItems: "center",
-    flexDirection: "row",
-  },
-  view: {
-    gap: 16,
-    width: "100%",
-    flex: 1,
-  },
-  frameParent: {
-    width: 254,
-    gap: 4,
-  },
-  group: {
-    alignItems: "center",
-    flexDirection: "row",
-    gap: 4,
-  },
-  text: {
-    fontSize: 22,
-    letterSpacing: -0.4,
-    lineHeight: 28,
-    textAlign: "left",
-    fontFamily: "Pretendard",
-    color: "#404040",
-    fontWeight: "700",
-  },
-  calendarDaysIcon: {
-    height: 16,
-  },
-  frameGroup: {
-    alignSelf: "stretch",
-    alignItems: "center",
-    flexDirection: "row",
-    gap: 4,
-  },
-  container: {
-    alignItems: "center",
-    flexDirection: "row",
-  },
-  text2: {
-    color: "#404040",
-    fontWeight: "700",
-    lineHeight: 20,
-    fontSize: 14,
-  },
-  text3: {
-    color: "#404040",
-  },
-  frameContainer: {
-    gap: 8,
-    alignSelf: "stretch",
-  },
-  frameParent2: {
-    gap: 4,
-  },
-  parent2: {
-    gap: 8,
-    alignItems: "center",
-    flexDirection: "row",
-  },
-  text6: {
-    color: "#a3a3a3",
-    fontWeight: "700",
-    lineHeight: 20,
-    fontSize: 14,
-  },
-  toggle: {
-    width: 32,
-    height: 16,
-  },
-  toggleChild: {
-    height: "100%",
-    top: "0%",
-    right: "0%",
-    bottom: "0%",
-    left: "0%",
-    borderRadius: 30,
-    backgroundColor: "#d4d4d4",
-    position: "absolute",
-    width: "100%",
-  },
-  circleIconSets: {
-    top: 0,
-    left: 0,
-    boxShadow: "3px 0px 4.6px rgba(0, 0, 0, 0.1)",
-    shadowColor: "rgba(0, 0, 0, 0.1)",
-    shadowOffset: {
-      width: 3,
-      height: 0,
-    },
-    shadowRadius: 4.6,
-    elevation: 4.6,
-    shadowOpacity: 1,
-    borderRadius: 50,
-    backgroundColor: "#fafafa",
-    justifyContent: "center",
-    position: "absolute",
-    height: 16,
-    alignItems: "center",
-  },
-  text7: {
-    color: "#a3a3a3",
-  },
-  frameParent3: {
-    alignSelf: "stretch",
-    gap: 16,
-  },
-  frameParent4: {
-    width: 328,
-  },
-  frameParent5: {
-    justifyContent: "space-between",
-    gap: 0,
-    alignSelf: "stretch",
-    flexDirection: "row",
-  },
-  frameParent6: {
-    gap: 8,
-    flexDirection: "row",
-  },
-  frameChildLayout: {
-    height: 24,
-    width: 24,
-  },
-  frameParent7: {
-    justifyContent: "center",
-  },
-  text8: {
-    fontSize: 16,
-    lineHeight: 24,
-    fontWeight: "500",
-    letterSpacing: -0.3,
-    textAlign: "left",
-    color: "#404040",
-    fontFamily: "Pretendard",
-  },
-  frame: {
-    borderRadius: 99,
-    justifyContent: "center",
-    alignItems: "center",
-    flexDirection: "row",
-  },
-  text9: {
-    width: 147,
-    alignSelf: "stretch",
-  },
-  text10: {
-    fontSize: 12,
-    lineHeight: 16,
-    letterSpacing: -0.2,
-    color: "#a3a3a3",
-  },
-  parent3: {
-    width: 95,
-    justifyContent: "flex-end",
-    gap: 8,
-    alignItems: "center",
-    flexDirection: "row",
-  },
-  text11: {
-    fontSize: 12,
-    lineHeight: 16,
-    letterSpacing: -0.2,
-    color: "#404040",
-  },
-  frameParent8: {
-    gap: 8,
-    alignSelf: "stretch",
-    alignItems: "center",
-  },
-  frameParent9: {
-    gap: 2,
-    overflow: "hidden",
-    alignSelf: "stretch",
-    alignItems: "center",
-    flexDirection: "row",
-  },
-  frameItem: {
-    flex: 1,
-  },
-  text12: {
-    marginTop: -8,
-    marginLeft: -9.25,
-    top: "50%",
-    left: "50%",
-    fontSize: 12,
-    lineHeight: 16,
-    letterSpacing: -0.2,
-    position: "absolute",
-    color: "#404040",
-  },
-  parent4: {
-    gap: 7,
-    alignItems: "center",
-    flexDirection: "row",
-  },
-  frameIcon: {
-    width: 10,
-    height: 10,
-  },
-  lineView: {
-    width: 313,
-    borderStyle: "solid",
-    borderColor: "#fafafa",
-    borderTopWidth: 1,
-    height: 1,
-  },
-  frameParent10: {
-    justifyContent: "center",
-  },
-  wrapper3: {
-    flex: 0.3907,
-    paddingVertical: 11,
-    paddingHorizontal: 46,
-    backgroundColor: "#f0f0f0",
-  },
-  frameWrapper: {
-    flexDirection: "row",
-    flex: 1,
-  },
-  wrapper4: {
-    flex: 1,
-  },
-  frameWrapper2: {
-    alignSelf: "stretch",
-  },
-  frameParent11: {
-    alignSelf: "stretch",
-  },
-  frameParent15: {
-    backgroundColor: "#f3f3f3",
-    padding: 8,
-    borderRadius: 8,
-    gap: 10,
-  },
-  wrapper7: {
-    width: 28,
-    borderRadius: 4,
-    backgroundColor: "#ffd2d2",
-    padding: 2,
-    justifyContent: "center",
-    alignItems: "center",
-    flexDirection: "row",
-  },
-  text20: {
-    fontSize: 11,
-    color: "#737373",
-    fontWeight: "500",
-  },
-  frameParent16: {
-    gap: 2,
-    justifyContent: "center",
-  },
-  frameParent17: {
-    gap: 2,
-    flexDirection: "row",
-  },
-  frameChild4: {
-    width: 77,
-  },
-  messageSquareParent: {
-    flex: 0.3907,
-    paddingVertical: 11,
-    paddingHorizontal: 46,
-    backgroundColor: "#f0f0f0",
-    gap: 4,
-  },
-  materialSymbolsstarRoundedGroup: {
-    gap: 4,
-    flex: 1,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 8,
-    backgroundColor: "#f0f0f0",
-    borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
-  },
-  backButton: {
-    padding: 8,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#404040",
-    flex: 1,
-    textAlign: "center",
-  },
-  headerSpacer: {
-    width: 40,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  bottomButtonContainer: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: 16,
-    backgroundColor: "#f0f0f0",
-    borderTopWidth: 1,
-    borderTopColor: "#f0f0f0",
-  },
-  nextButton: {
-    backgroundColor: "#404040",
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  nextButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-  previewImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
-  },
-  removeButton: {
-    position: "absolute",
-    top: 5,
-    right: 5,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    borderRadius: 10,
-    padding: 5,
-  },
-  addImageContainer: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    paddingVertical: 10,
-  },
-  addImageButton: {
-    alignItems: "center",
-    justifyContent: "center",
-    width: "45%",
-  },
-  addImageText: {
-    marginTop: 5,
-    fontSize: 12,
-    color: "#666",
-  },
-});
 
 export default DateRecordModalFigma;

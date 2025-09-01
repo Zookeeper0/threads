@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useEffect } from "react";
 import {
   ActivityIndicator,
+  Modal,
   StyleSheet,
   Text,
   useColorScheme,
@@ -14,41 +15,52 @@ interface LoadingScreenProps {
 const LoadingScreen: React.FC<LoadingScreenProps> = ({ visible }) => {
   const colorScheme = useColorScheme();
 
-  if (!visible) return null;
+  useEffect(() => {
+    if (visible) {
+      console.log("LoadingScreen visible");
+    }
+  }, [visible]);
 
   return (
-    <View
-      style={[
-        styles.container,
-        colorScheme === "dark" ? styles.containerDark : styles.containerLight,
-      ]}
+    <Modal
+      visible={visible}
+      transparent
+      animationType="none"
+      statusBarTranslucent
     >
-      <View style={styles.content}>
-        <View
-          style={[
-            styles.imagePlaceholder,
-            colorScheme === "dark"
-              ? styles.imagePlaceholderDark
-              : styles.imagePlaceholderLight,
-          ]}
-        />
-        <Text
-          style={[
-            styles.loadingText,
-            colorScheme === "dark"
-              ? styles.loadingTextDark
-              : styles.loadingTextLight,
-          ]}
-        >
-          사진에서 날짜와 장소를 추출하고 있어요...
-        </Text>
-        <ActivityIndicator
-          size="large"
-          color={colorScheme === "dark" ? "#FF8FB1" : "#FF6B9D"}
-          style={styles.spinner}
-        />
+      <View
+        style={[
+          styles.container,
+          colorScheme === "dark" ? styles.containerDark : styles.containerLight,
+        ]}
+      >
+        <View style={styles.content}>
+          <View
+            style={[
+              styles.imagePlaceholder,
+              colorScheme === "dark"
+                ? styles.imagePlaceholderDark
+                : styles.imagePlaceholderLight,
+            ]}
+          />
+          <Text
+            style={[
+              styles.loadingText,
+              colorScheme === "dark"
+                ? styles.loadingTextDark
+                : styles.loadingTextLight,
+            ]}
+          >
+            사진에서 날짜와 장소를 추출하고 있어요...
+          </Text>
+          <ActivityIndicator
+            size="large"
+            color={colorScheme === "dark" ? "#FF8FB1" : "#FF6B9D"}
+            style={styles.spinner}
+          />
+        </View>
       </View>
-    </View>
+    </Modal>
   );
 };
 

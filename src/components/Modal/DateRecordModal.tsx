@@ -18,7 +18,7 @@ import {
   View,
   useColorScheme,
 } from "react-native";
-import LoadingScreen from "./LoadingScreen";
+import LoadingScreen from "../LoadingScreen";
 
 interface ImageWithLocation {
   uri: string;

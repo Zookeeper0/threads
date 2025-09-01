@@ -1,5 +1,6 @@
 import { AuthContext } from "@/app/_layout";
-import DateRecordModalFigma from "@/components/DateRecordModalFigma";
+import LoadingScreen from "@/components/LoadingScreen";
+import DateRecordModalFigma from "@/components/Modal/DateRecordModal/DateRecordModalFigma";
 import SideMenu from "@/components/SideMenu";
 import { Ionicons } from "@expo/vector-icons";
 import {
@@ -49,6 +50,7 @@ export default function TabLayout() {
   const insets = useSafeAreaInsets();
   const [isSideMenuOpen, setIsSideMenuOpen] = useState(false);
   const [isDateRecordModalOpen, setIsDateRecordModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const { user } = useContext(AuthContext);
   const isLoggedIn = !!user;
   const pullDownPosition = useSharedValue(0);
@@ -69,6 +71,9 @@ export default function TabLayout() {
           colorScheme === "dark" ? styles.containerDark : styles.containerLight,
         ]}
       >
+        {/* 로딩 화면 - 전체 화면을 덮음 */}
+        <LoadingScreen visible={isLoading} />
+
         <BlurView
           style={[
             styles.header,
@@ -199,6 +204,7 @@ export default function TabLayout() {
             <DateRecordModalFigma
               visible={isDateRecordModalOpen}
               onClose={() => setIsDateRecordModalOpen(false)}
+              onLoadingChange={setIsLoading}
             />
           </>
         ) : (
