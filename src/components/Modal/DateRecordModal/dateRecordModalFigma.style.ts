@@ -52,7 +52,7 @@ export const styles = StyleSheet.create({
   },
   frameParentSpaceBlock: {
     paddingVertical: 16,
-    paddingHorizontal: 8,
+    paddingHorizontal: 16,
     borderRadius: 16,
     gap: 8,
   },
@@ -95,9 +95,10 @@ export const styles = StyleSheet.create({
     gap: 16,
     width: "100%",
     flex: 1,
+    paddingHorizontal: 16,
   },
   frameParent: {
-    width: 254,
+    width: "100%",
     gap: 4,
   },
   group: {
@@ -196,7 +197,8 @@ export const styles = StyleSheet.create({
     gap: 16,
   },
   frameParent4: {
-    width: 328,
+    width: "100%",
+    alignSelf: "stretch",
   },
   frameParent5: {
     justifyContent: "space-between",
@@ -216,7 +218,7 @@ export const styles = StyleSheet.create({
     justifyContent: "center",
   },
   text8: {
-    fontSize: 16,
+    fontSize: 14,
     lineHeight: 24,
     fontWeight: "500",
     letterSpacing: -0.3,
@@ -289,7 +291,7 @@ export const styles = StyleSheet.create({
     height: 10,
   },
   lineView: {
-    width: 313,
+    width: "100%",
     borderStyle: "solid",
     borderColor: "#fafafa",
     borderTopWidth: 1,
@@ -409,8 +411,8 @@ export const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   previewImage: {
-    width: 80,
-    height: 80,
+    width: "100%",
+    height: "100%",
     borderRadius: 8,
   },
   removeButton: {
@@ -435,5 +437,63 @@ export const styles = StyleSheet.create({
     marginTop: 5,
     fontSize: 12,
     color: "#666",
+  },
+  // 새로운 스타일들
+  remainingCountContainer: {
+    backgroundColor: "#f0f0f0",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  remainingCountOverlay: {
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    borderRadius: 8,
+    padding: 8,
+    justifyContent: "center",
+    alignItems: "center",
+    width: "100%",
+    height: "100%",
+  },
+  remainingCountText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "bold",
+    textAlign: "center",
+  },
+  actionButton: {
+    gap: 6,
+    backgroundColor: "#f8f8f8",
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
+  },
+  actionButtonText: {
+    color: "#666",
+    fontSize: 12,
+    fontWeight: "500",
+  },
+  // 이미지 그리드 스타일들
+  imageGridContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 4,
+    width: "100%",
+    justifyContent: "space-between",
+  },
+  imageGridItem: {
+    backgroundColor: "#d9d9d9",
+    borderRadius: 8,
+    overflow: "hidden",
+    position: "relative",
+  },
+  singleImageItem: {
+    width: "100%",
+    height: 120,
+  },
+  twoImageItem: {
+    width: "48%",
+    height: 100,
+  },
+  threeImageLastItem: {
+    width: "100%",
+    height: 80,
   },
 });

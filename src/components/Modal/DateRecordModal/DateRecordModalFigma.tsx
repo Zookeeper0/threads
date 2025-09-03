@@ -4,7 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useMutation } from "@tanstack/react-query";
 import * as ImagePicker from "expo-image-picker";
 import * as MediaLibrary from "expo-media-library";
-import * as React from "react";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -68,18 +68,16 @@ const DateRecordModalFigma: React.FC<DateRecordModalFigmaProps> = ({
   onClose,
   onLoadingChange,
 }) => {
-  const [selectedImages, setSelectedImages] = React.useState<
-    ImageWithLocation[]
-  >([]);
-  const [isLoading, setIsLoading] = React.useState(false);
+  const [selectedImages, setSelectedImages] = useState<ImageWithLocation[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   // 로딩 상태 변경 시 상위 컴포넌트에 알림
-  React.useEffect(() => {
+  useEffect(() => {
     onLoadingChange?.(isLoading);
   }, [isLoading, onLoadingChange]);
 
   // 모달이 닫히면 자동으로 이미지 선택 시작
-  React.useEffect(() => {
+  useEffect(() => {
     if (visible && selectedImages.length === 0) {
       handlePickImages();
     }
@@ -508,51 +506,81 @@ const DateRecordModalFigma: React.FC<DateRecordModalFigmaProps> = ({
   };
 
   // 그룹화된 이미지들
-  const [locationGroups, setLocationGroups] = React.useState<LocationGroup[]>(
-    []
-  );
+  const [locationGroups, setLocationGroups] = useState<LocationGroup[]>([]);
 
   // 이미지가 변경될 때마다 그룹화하고 장소명 가져오기
-  React.useEffect(() => {
+  useEffect(() => {
     const groups = groupImagesByLocation(selectedImages);
 
-    // 그룹 설정
-    setLocationGroups(groups);
+    // 기존 그룹의 장소명을 보존하면서 새로운 그룹 설정
+    setLocationGroups((prevGroups) => {
+      const newGroups = groups.map((newGroup) => {
+        // 기존 그룹에서 같은 위치의 그룹 찾기
+        const existingGroup = prevGroups.find(
+          (existingGroup) =>
+            Math.abs(
+              existingGroup.representativeLocation.latitude -
+                newGroup.representativeLocation.latitude
+            ) < 0.001 &&
+            Math.abs(
+              existingGroup.representativeLocation.longitude -
+                newGroup.representativeLocation.longitude
+            ) < 0.001
+        );
 
-    // 장소명 가져오기
-    if (groups.length > 0) {
-      fetchAllPlaceNames(groups);
+        // 기존 그룹이 있으면 장소명을 유지, 없으면 새로운 그룹 반환
+        return existingGroup
+          ? { ...newGroup, placeName: existingGroup.placeName }
+          : newGroup;
+      });
+
+      return newGroups;
+    });
+
+    // 새로운 그룹에만 장소명 API 호출
+    const newGroups = groups.filter((newGroup) => {
+      return !locationGroups.some(
+        (existingGroup) =>
+          Math.abs(
+            existingGroup.representativeLocation.latitude -
+              newGroup.representativeLocation.latitude
+          ) < 0.001 &&
+          Math.abs(
+            existingGroup.representativeLocation.longitude -
+              newGroup.representativeLocation.longitude
+          ) < 0.001
+      );
+    });
+
+    if (newGroups.length > 0) {
+      fetchAllPlaceNames(newGroups);
     }
   }, [selectedImages]);
 
   const renderLocationGroup = (group: LocationGroup, index: number) => {
-    const firstImage = group.images[0];
-    const remainingCount = group.images.length - 1;
+    const maxDisplayImages = 4;
+    const displayImages = group.images.slice(0, maxDisplayImages);
+    const remainingCount = Math.max(0, group.images.length - maxDisplayImages);
 
     return (
       <View
         key={group.id}
         style={[styles.frameParent4, styles.frameParentSpaceBlock]}
       >
+        {/* 장소 정보 헤더 */}
         <View style={styles.frameParent5}>
           <View style={styles.frameParent6}>
             <Ionicons
               name="location"
               style={styles.frameChildLayout}
               size={24}
+              color="#FF6B9D"
             />
             <View style={styles.frameParent7}>
               <View style={styles.container}>
                 <Text style={styles.text8}>
-                  {group.count > 1 ? `${group.count}장의 사진` : "1장의 사진"}
+                  {group.placeName ? group.placeName : "알 수 없는 장소"}
                 </Text>
-                {group.placeName && (
-                  <Text
-                    style={[styles.text9, styles.textTypo, { marginTop: 4 }]}
-                  >
-                    {group.placeName}
-                  </Text>
-                )}
               </View>
               <View style={styles.frame}>
                 <Text style={[styles.text9, styles.textTypo]}>
@@ -572,17 +600,26 @@ const DateRecordModalFigma: React.FC<DateRecordModalFigmaProps> = ({
               name="ellipsis-horizontal"
               style={styles.frameChildLayout}
               size={24}
+              color="#666"
             />
           </View>
         </View>
 
         {/* 이미지 미리보기 */}
         <View style={styles.frameParent8}>
-          <View style={styles.frameParent9}>
-            {group.images.slice(0, 4).map((img, imgIndex) => (
+          <View style={styles.imageGridContainer}>
+            {displayImages.map((img, imgIndex) => (
               <View
                 key={img.uri}
-                style={[styles.frameItem, styles.frameLayout]}
+                style={[
+                  styles.imageGridItem,
+                  displayImages.length === 1 && styles.singleImageItem,
+                  displayImages.length === 2 && styles.twoImageItem,
+                  displayImages.length === 3 &&
+                    imgIndex === 2 &&
+                    styles.threeImageLastItem,
+                  displayImages.length >= 4 && { width: "48%", height: 80 },
+                ]}
               >
                 <Image source={{ uri: img.uri }} style={styles.previewImage} />
                 <TouchableOpacity
@@ -599,10 +636,18 @@ const DateRecordModalFigma: React.FC<DateRecordModalFigmaProps> = ({
               </View>
             ))}
             {remainingCount > 0 && (
-              <View style={[styles.frameItem, styles.frameLayout]}>
-                <Text style={[styles.text12, styles.textTypo1]}>
-                  + {remainingCount}
-                </Text>
+              <View
+                style={[
+                  styles.imageGridItem,
+                  styles.remainingCountContainer,
+                  { width: "48%", height: 80 },
+                ]}
+              >
+                <View style={styles.remainingCountOverlay}>
+                  <Text style={styles.remainingCountText}>
+                    +{remainingCount}
+                  </Text>
+                </View>
               </View>
             )}
           </View>
@@ -618,14 +663,34 @@ const DateRecordModalFigma: React.FC<DateRecordModalFigmaProps> = ({
         </View>
 
         <View style={styles.lineView} />
+
+        {/* 액션 버튼들 */}
         <View style={[styles.frameParent10, styles.frameParentFlexBox]}>
-          <View style={[styles.wrapper3, styles.wrapperFlexBox]}>
-            <Text style={styles.textTypo}>+ 메모 추가</Text>
-          </View>
+          <TouchableOpacity
+            style={[
+              styles.wrapper3,
+              styles.wrapperFlexBox,
+              styles.actionButton,
+            ]}
+          >
+            <Ionicons name="create-outline" size={16} color="#666" />
+            <Text style={[styles.textTypo, styles.actionButtonText]}>
+              메모 추가
+            </Text>
+          </TouchableOpacity>
           <View style={styles.frameWrapper}>
-            <View style={[styles.wrapper4, styles.wrapperFlexBox]}>
-              <Text style={styles.textTypo}>+ 평점 추가</Text>
-            </View>
+            <TouchableOpacity
+              style={[
+                styles.wrapper4,
+                styles.wrapperFlexBox,
+                styles.actionButton,
+              ]}
+            >
+              <Ionicons name="star-outline" size={16} color="#666" />
+              <Text style={[styles.textTypo, styles.actionButtonText]}>
+                평점 추가
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
       </View>
