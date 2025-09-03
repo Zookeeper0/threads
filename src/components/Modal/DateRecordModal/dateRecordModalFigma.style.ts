@@ -386,6 +386,7 @@ export const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+    paddingBottom: 100, // 하단 버튼 영역만큼 여백 추가
   },
   bottomButtonContainer: {
     position: "absolute",
@@ -472,11 +473,14 @@ export const styles = StyleSheet.create({
   },
   // 이미지 그리드 스타일들
   imageGridContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 4,
     width: "100%",
-    justifyContent: "space-between",
+    flexDirection: "row",
+    gap: 4,
+  },
+  imageGridContent: {
+    flexDirection: "row",
+    gap: 4,
+    paddingHorizontal: 0,
   },
   imageGridItem: {
     backgroundColor: "#d9d9d9",
@@ -492,8 +496,9 @@ export const styles = StyleSheet.create({
     width: "48%",
     height: 100,
   },
-  threeImageLastItem: {
-    width: "100%",
+  multiImageItem: {
+    width: 80,
     height: 80,
+    flexShrink: 0,
   },
 });

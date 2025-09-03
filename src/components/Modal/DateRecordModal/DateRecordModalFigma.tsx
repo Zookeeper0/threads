@@ -607,50 +607,81 @@ const DateRecordModalFigma: React.FC<DateRecordModalFigmaProps> = ({
 
         {/* 이미지 미리보기 */}
         <View style={styles.frameParent8}>
-          <View style={styles.imageGridContainer}>
-            {displayImages.map((img, imgIndex) => (
-              <View
-                key={img.uri}
-                style={[
-                  styles.imageGridItem,
-                  displayImages.length === 1 && styles.singleImageItem,
-                  displayImages.length === 2 && styles.twoImageItem,
-                  displayImages.length === 3 &&
-                    imgIndex === 2 &&
-                    styles.threeImageLastItem,
-                  displayImages.length >= 4 && { width: "48%", height: 80 },
-                ]}
-              >
-                <Image source={{ uri: img.uri }} style={styles.previewImage} />
-                <TouchableOpacity
-                  style={styles.removeButton}
-                  onPress={() => {
-                    const imageIndex = selectedImages.findIndex(
-                      (img2) => img2.uri === img.uri
-                    );
-                    if (imageIndex !== -1) handleRemoveImage(imageIndex);
-                  }}
+          {displayImages.length <= 2 ? (
+            <View style={styles.imageGridContainer}>
+              {displayImages.map((img, imgIndex) => (
+                <View
+                  key={img.uri}
+                  style={[
+                    styles.imageGridItem,
+                    displayImages.length === 1 && styles.singleImageItem,
+                    displayImages.length === 2 && styles.twoImageItem,
+                  ]}
                 >
-                  <Ionicons name="close-circle" size={20} color="white" />
-                </TouchableOpacity>
-              </View>
-            ))}
-            {remainingCount > 0 && (
-              <View
-                style={[
-                  styles.imageGridItem,
-                  styles.remainingCountContainer,
-                  { width: "48%", height: 80 },
-                ]}
-              >
-                <View style={styles.remainingCountOverlay}>
-                  <Text style={styles.remainingCountText}>
-                    +{remainingCount}
-                  </Text>
+                  <Image
+                    source={{ uri: img.uri }}
+                    style={styles.previewImage}
+                  />
+                  <TouchableOpacity
+                    style={styles.removeButton}
+                    onPress={() => {
+                      const imageIndex = selectedImages.findIndex(
+                        (img2) => img2.uri === img.uri
+                      );
+                      if (imageIndex !== -1) handleRemoveImage(imageIndex);
+                    }}
+                  >
+                    <Ionicons name="close-circle" size={20} color="white" />
+                  </TouchableOpacity>
                 </View>
-              </View>
-            )}
-          </View>
+              ))}
+            </View>
+          ) : (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.imageGridContainer}
+              contentContainerStyle={styles.imageGridContent}
+            >
+              {displayImages.map((img, imgIndex) => (
+                <View
+                  key={img.uri}
+                  style={[styles.imageGridItem, styles.multiImageItem]}
+                >
+                  <Image
+                    source={{ uri: img.uri }}
+                    style={styles.previewImage}
+                  />
+                  <TouchableOpacity
+                    style={styles.removeButton}
+                    onPress={() => {
+                      const imageIndex = selectedImages.findIndex(
+                        (img2) => img2.uri === img.uri
+                      );
+                      if (imageIndex !== -1) handleRemoveImage(imageIndex);
+                    }}
+                  >
+                    <Ionicons name="close-circle" size={20} color="white" />
+                  </TouchableOpacity>
+                </View>
+              ))}
+              {remainingCount > 0 && (
+                <View
+                  style={[
+                    styles.imageGridItem,
+                    styles.remainingCountContainer,
+                    styles.multiImageItem,
+                  ]}
+                >
+                  <View style={styles.remainingCountOverlay}>
+                    <Text style={styles.remainingCountText}>
+                      +{remainingCount}
+                    </Text>
+                  </View>
+                </View>
+              )}
+            </ScrollView>
+          )}
           <View style={styles.parent4}>
             <Text style={[styles.text10, styles.textTypo1]}>더보기</Text>
             <Ionicons
@@ -799,10 +830,16 @@ const DateRecordModalFigma: React.FC<DateRecordModalFigmaProps> = ({
               </View>
 
               <View style={styles.frameParent3}>
-                {locationGroups.map((group, index) =>
-                  renderLocationGroup(group, index)
+                {locationGroups.length > 0 ? (
+                  <>
+                    {locationGroups.map((group, index) =>
+                      renderLocationGroup(group, index)
+                    )}
+                    {renderAddImageButton()}
+                  </>
+                ) : (
+                  renderAddImageButton()
                 )}
-                {renderAddImageButton()}
               </View>
             </View>
           </View>
