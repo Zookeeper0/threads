@@ -80,6 +80,12 @@ const DateRecordModalFigma: React.FC<DateRecordModalFigmaProps> = ({
   const [tempRating, setTempRating] = useState<number>(0);
   const [tempMemo, setTempMemo] = useState<string>("");
 
+  // 수정 모드 상태
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [selectedImageForMove, setSelectedImageForMove] = useState<string[]>(
+    []
+  );
+
   // 로딩 상태 변경 시 상위 컴포넌트에 알림
   useEffect(() => {
     onLoadingChange?.(isLoading);
@@ -474,6 +480,8 @@ const DateRecordModalFigma: React.FC<DateRecordModalFigmaProps> = ({
     setExpandedGroupId(null);
     setTempRating(0);
     setTempMemo("");
+    setIsEditMode(false);
+    setSelectedImageForMove([]);
     onClose();
   };
 
@@ -513,43 +521,7 @@ const DateRecordModalFigma: React.FC<DateRecordModalFigmaProps> = ({
     setTempMemo("");
   };
 
-  // 평점 입력 UI 렌더링
-  const renderRatingInput = (groupId: string) => {
-    return (
-      <View style={styles.ratingInputContainer}>
-        <Text style={styles.ratingLabel}>평점</Text>
-        <View style={styles.starContainer}>
-          {[1, 2, 3, 4, 5].map((star) => (
-            <TouchableOpacity
-              key={star}
-              onPress={() => setTempRating(star)}
-              style={styles.starButton}
-            >
-              <Ionicons
-                name={tempRating >= star ? "star" : "star-outline"}
-                size={24}
-                color={tempRating >= star ? "#FFD700" : "#ccc"}
-              />
-            </TouchableOpacity>
-          ))}
-        </View>
-        <View style={styles.inputActionButtons}>
-          <TouchableOpacity
-            style={styles.saveButton}
-            onPress={() => handleSaveRating(groupId)}
-          >
-            <Text style={styles.saveButtonText}>저장</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.cancelButton}
-            onPress={handleCancelInput}
-          >
-            <Text style={styles.cancelButtonText}>취소</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  };
+
 
   // 위경도를 기준으로 이미지 그룹화 (0.001도 차이 내는 것을 같은 장소로 판단)
   const groupImagesByLocation = (
@@ -653,6 +625,101 @@ const DateRecordModalFigma: React.FC<DateRecordModalFigmaProps> = ({
     }
   }, [selectedImages]);
 
+  /** 수정 모드 토글 함수 */
+  const handleToggleEditMode = () => {
+    setIsEditMode(!isEditMode);
+    setSelectedImageForMove([]);
+    setExpandedGroupId(null);
+  };
+
+  /** 이미지를 다른 그룹으로 이동하는 함수 */
+  const handleMoveImage = (imageUri: string, targetGroupId: string) => {
+    if (selectedImageForMove.length === 0) return;
+
+    setLocationGroups((prev) => {
+      const newGroups = [...prev];
+
+      // 선택된 모든 이미지를 이동
+      selectedImageForMove.forEach((selectedUri) => {
+        // 현재 그룹에서 이미지 제거
+        const currentGroupIndex = newGroups.findIndex((group) =>
+          group.images.some((img) => img.uri === selectedUri)
+        );
+
+        if (currentGroupIndex !== -1) {
+          const currentGroup = newGroups[currentGroupIndex];
+          const imageToMove = currentGroup.images.find(
+            (img) => img.uri === selectedUri
+          );
+
+          if (imageToMove) {
+            // 현재 그룹에서 이미지 제거
+            newGroups[currentGroupIndex] = {
+              ...currentGroup,
+              images: currentGroup.images.filter(
+                (img) => img.uri !== selectedUri
+              ),
+              count: currentGroup.images.length - 1,
+            };
+
+            // 타겟 그룹에 이미지 추가
+            const targetGroupIndex = newGroups.findIndex(
+              (group) => group.id === targetGroupId
+            );
+            if (targetGroupIndex !== -1) {
+              newGroups[targetGroupIndex] = {
+                ...newGroups[targetGroupIndex],
+                images: [...newGroups[targetGroupIndex].images, imageToMove],
+                count: newGroups[targetGroupIndex].images.length + 1,
+              };
+            }
+          }
+        }
+      });
+
+      // 빈 그룹 제거
+      return newGroups.filter((group) => group.images.length > 0);
+    });
+
+    setSelectedImageForMove([]);
+  };
+
+  /** 이미지 선택/해제 함수 (복수 선택 지원) */
+  const handleSelectImageForMove = (imageUri: string) => {
+    setSelectedImageForMove((prev) => {
+      if (prev.includes(imageUri)) {
+        // 이미 선택된 이미지면 제거
+        return prev.filter((uri) => uri !== imageUri);
+      } else {
+        // 선택되지 않은 이미지면 추가
+        return [...prev, imageUri];
+      }
+    });
+  };
+
+  /** 모든 이미지 선택/해제 함수 */
+  const handleSelectAllImages = (group: LocationGroup) => {
+    const groupImageUris = group.images.map((img) => img.uri);
+    setSelectedImageForMove((prev) => {
+      const allSelected = groupImageUris.every((uri) => prev.includes(uri));
+      if (allSelected) {
+        // 모든 이미지가 선택되어 있으면 그룹의 모든 이미지 제거
+        return prev.filter((uri) => !groupImageUris.includes(uri));
+      } else {
+        // 일부만 선택되어 있으면 그룹의 모든 이미지 추가
+        const newSelection = [...prev];
+        groupImageUris.forEach((uri) => {
+          if (!newSelection.includes(uri)) {
+            newSelection.push(uri);
+          }
+        });
+        return newSelection;
+      }
+    });
+  };
+
+
+  /** 장소 그룹 렌더링 함수 */
   const renderLocationGroup = (group: LocationGroup, index: number) => {
     const maxDisplayImages = 4;
     const displayImages = group.images.slice(0, maxDisplayImages);
@@ -688,6 +755,24 @@ const DateRecordModalFigma: React.FC<DateRecordModalFigmaProps> = ({
               <Text style={[styles.text11, styles.textTypo1]}>
                 {group.count}장
               </Text>
+              {isEditMode && (
+                <TouchableOpacity
+                  style={styles.selectAllButton}
+                  onPress={() => handleSelectAllImages(group)}
+                >
+                  <Ionicons
+                    name={
+                      group.images.every((img) =>
+                        selectedImageForMove.includes(img.uri)
+                      )
+                        ? "checkbox"
+                        : "square-outline"
+                    }
+                    size={20}
+                    color="#FF6B9D"
+                  />
+                </TouchableOpacity>
+              )}
               <Ionicons
                 name="ellipsis-horizontal"
                 style={styles.frameChildLayout}
@@ -696,6 +781,15 @@ const DateRecordModalFigma: React.FC<DateRecordModalFigmaProps> = ({
               />
             </View>
           </View>
+
+          {/* 수정모드에서 선택된 이미지 개수 표시 */}
+          {isEditMode && selectedImageForMove.length > 0 && (
+            <View style={styles.selectionInfoContainer}>
+              <Text style={styles.selectionInfoText}>
+                {selectedImageForMove.length}개 이미지 선택됨
+              </Text>
+            </View>
+          )}
 
           {/* 평점과 메모 입력 UI (확장된 상태일 때만 표시) */}
           {isExpanded && (
@@ -763,23 +857,47 @@ const DateRecordModalFigma: React.FC<DateRecordModalFigmaProps> = ({
                       styles.imageGridItem,
                       displayImages.length === 1 && styles.singleImageItem,
                       displayImages.length === 2 && styles.twoImageItem,
+                      isEditMode &&
+                        selectedImageForMove.includes(img.uri) &&
+                        styles.selectedImageItem,
                     ]}
                   >
                     <Image
                       source={{ uri: img.uri }}
                       style={styles.previewImage}
                     />
-                    <TouchableOpacity
-                      style={styles.removeButton}
-                      onPress={() => {
-                        const imageIndex = selectedImages.findIndex(
-                          (img2) => img2.uri === img.uri
-                        );
-                        if (imageIndex !== -1) handleRemoveImage(imageIndex);
-                      }}
-                    >
-                      <Ionicons name="close-circle" size={20} color="white" />
-                    </TouchableOpacity>
+                    {isEditMode ? (
+                      <TouchableOpacity
+                        style={styles.moveButton}
+                        onPress={() => handleSelectImageForMove(img.uri)}
+                      >
+                        <Ionicons
+                          name={
+                            selectedImageForMove.includes(img.uri)
+                              ? "checkmark-circle"
+                              : "arrow-forward-circle"
+                          }
+                          size={20}
+                          color={
+                            selectedImageForMove.includes(img.uri)
+                              ? "#4CAF50"
+                              : "#666"
+                          }
+                        />
+                      </TouchableOpacity>
+                    ) : (
+                      <TouchableOpacity
+                        style={styles.removeButton}
+                        onPress={() => {
+                          const imageIndex = selectedImages.findIndex(
+                            (img2) => img2.uri === img.uri
+                          );
+                          if (imageIndex !== -1) handleRemoveImage(imageIndex);
+                        }}
+                      >
+                        <Ionicons name="close-circle" size={20} color="white" />
+                      </TouchableOpacity>
+                    )}
                   </View>
                 ))}
               </View>
@@ -793,23 +911,50 @@ const DateRecordModalFigma: React.FC<DateRecordModalFigmaProps> = ({
                 {displayImages.map((img, imgIndex) => (
                   <View
                     key={img.uri}
-                    style={[styles.imageGridItem, styles.multiImageItem]}
+                    style={[
+                      styles.imageGridItem,
+                      styles.multiImageItem,
+                      isEditMode &&
+                        selectedImageForMove.includes(img.uri) &&
+                        styles.selectedImageItem,
+                    ]}
                   >
                     <Image
                       source={{ uri: img.uri }}
                       style={styles.previewImage}
                     />
-                    <TouchableOpacity
-                      style={styles.removeButton}
-                      onPress={() => {
-                        const imageIndex = selectedImages.findIndex(
-                          (img2) => img2.uri === img.uri
-                        );
-                        if (imageIndex !== -1) handleRemoveImage(imageIndex);
-                      }}
-                    >
-                      <Ionicons name="close-circle" size={20} color="white" />
-                    </TouchableOpacity>
+                    {isEditMode ? (
+                      <TouchableOpacity
+                        style={styles.moveButton}
+                        onPress={() => handleSelectImageForMove(img.uri)}
+                      >
+                        <Ionicons
+                          name={
+                            selectedImageForMove.includes(img.uri)
+                              ? "checkmark-circle"
+                              : "arrow-forward-circle"
+                          }
+                          size={20}
+                          color={
+                            selectedImageForMove.includes(img.uri)
+                              ? "#4CAF50"
+                              : "#666"
+                          }
+                        />
+                      </TouchableOpacity>
+                    ) : (
+                      <TouchableOpacity
+                        style={styles.removeButton}
+                        onPress={() => {
+                          const imageIndex = selectedImages.findIndex(
+                            (img2) => img2.uri === img.uri
+                          );
+                          if (imageIndex !== -1) handleRemoveImage(imageIndex);
+                        }}
+                      >
+                        <Ionicons name="close-circle" size={20} color="white" />
+                      </TouchableOpacity>
+                    )}
                   </View>
                 ))}
                 {remainingCount > 0 && (
@@ -863,6 +1008,38 @@ const DateRecordModalFigma: React.FC<DateRecordModalFigmaProps> = ({
               </Text>
             </TouchableOpacity>
           </View>
+
+          {/* 수정모드에서 선택된 이미지가 있을 때 이동 옵션 표시 */}
+          {isEditMode && selectedImageForMove.length > 0 && (
+            <View style={styles.moveOptionsContainer}>
+              <Text style={styles.moveOptionsTitle}>
+                {selectedImageForMove.length}개 이미지를 이동할 그룹을
+                선택하세요:
+              </Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                {locationGroups
+                  .filter(
+                    (targetGroup) =>
+                      !targetGroup.images.some((img) =>
+                        selectedImageForMove.includes(img.uri)
+                      )
+                  )
+                  .map((targetGroup) => (
+                    <TouchableOpacity
+                      key={targetGroup.id}
+                      style={styles.moveOptionButton}
+                      onPress={() =>
+                        handleMoveImage(selectedImageForMove[0], targetGroup.id)
+                      }
+                    >
+                      <Text style={styles.moveOptionText}>
+                        {targetGroup.placeName || "알 수 없는 장소"}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+              </ScrollView>
+            </View>
+          )}
         </View>
       </View>
     );
@@ -959,13 +1136,23 @@ const DateRecordModalFigma: React.FC<DateRecordModalFigmaProps> = ({
               <View style={styles.frameParent2}>
                 <View style={styles.parent2}>
                   <Text style={[styles.text6, styles.textTypo3]}>수정모드</Text>
-                  <View style={styles.toggle}>
-                    <View style={styles.toggleChild} />
-                    <View style={[styles.circleIconSets, styles.iconLayout]} />
-                  </View>
+                  <TouchableOpacity onPress={handleToggleEditMode}>
+                    <View style={styles.toggle}>
+                      <View style={styles.toggleChild} />
+                      <View
+                        style={[
+                          styles.circleIconSets,
+                          styles.iconLayout,
+                          isEditMode && { transform: [{ translateX: 16 }] },
+                        ]}
+                      />
+                    </View>
+                  </TouchableOpacity>
                 </View>
                 <Text style={[styles.text7, styles.textTypo3]}>
-                  장소 명이나 사진이 잘못 지정되었다면 수정할 수 있어요.
+                  {isEditMode
+                    ? "사진을 선택하여 다른 그룹으로 이동할 수 있어요."
+                    : "장소 명이나 사진이 잘못 지정되었다면 수정할 수 있어요."}
                 </Text>
               </View>
 

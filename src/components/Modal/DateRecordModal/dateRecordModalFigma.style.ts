@@ -637,4 +637,61 @@ export const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "600",
   },
+  // 이미지 이동 관련 스타일
+  selectedImageItem: {
+    borderWidth: 2,
+    borderColor: "#4CAF50",
+  },
+  moveButton: {
+    position: "absolute",
+    top: 5,
+    right: 5,
+    backgroundColor: "rgba(255,255,255,0.9)",
+    borderRadius: 10,
+    padding: 5,
+  },
+  moveOptionsContainer: {
+    backgroundColor: "#f8f8f8",
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
+  },
+  moveOptionsTitle: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#404040",
+    marginBottom: 8,
+  },
+  moveOptionButton: {
+    backgroundColor: "#FF6B9D",
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    marginRight: 8,
+  },
+  moveOptionText: {
+    color: "#fff",
+    fontSize: 11,
+    fontWeight: "600",
+  },
+  // 복수 선택 관련 스타일
+  selectAllButton: {
+    padding: 4,
+    marginRight: 8,
+  },
+  selectionInfoContainer: {
+    backgroundColor: "#FF6B9D",
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    marginVertical: 8,
+    alignSelf: "flex-start",
+  },
+  selectionInfoText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "600",
+  },
 });
