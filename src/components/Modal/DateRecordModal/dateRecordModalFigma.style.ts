@@ -501,4 +501,139 @@ export const styles = StyleSheet.create({
     height: 80,
     flexShrink: 0,
   },
+  // 평점 입력 UI 스타일
+  ratingInputContainer: {
+    backgroundColor: "#f8f8f8",
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
+  },
+  ratingLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#404040",
+    marginBottom: 8,
+  },
+  starContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 8,
+    marginBottom: 12,
+  },
+  starButton: {
+    padding: 4,
+  },
+  // 메모 입력 UI 스타일
+  memoInputContainer: {
+    backgroundColor: "#f8f8f8",
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
+  },
+  memoLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#404040",
+    marginBottom: 8,
+  },
+  memoTextInput: {
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 14,
+    minHeight: 80,
+    marginBottom: 12,
+  },
+  // 액션 버튼 스타일
+  inputActionButtons: {
+    flexDirection: "row",
+    gap: 8,
+    justifyContent: "flex-end",
+  },
+  saveButton: {
+    backgroundColor: "#FF6B9D",
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 6,
+  },
+  saveButtonText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  cancelButton: {
+    backgroundColor: "#f0f0f0",
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
+  },
+  cancelButtonText: {
+    color: "#666",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  // 확장 버튼 스타일
+  expandButton: {
+    alignItems: "center",
+    paddingVertical: 8,
+  },
+  // 평점과 메모 통합 컨테이너 스타일
+  ratingMemoContainer: {
+    backgroundColor: "#f8f8f8",
+    padding: 12,
+    borderRadius: 8,
+    marginVertical: 8,
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
+  },
+  ratingMemoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 8,
+  },
+  ratingMemoLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#404040",
+    marginRight: 8,
+  },
+  compactStarContainer: {
+    flexDirection: "row",
+    gap: 4,
+  },
+  compactStarButton: {
+    padding: 2,
+  },
+  compactMemoInput: {
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
+    borderRadius: 6,
+    padding: 8,
+    fontSize: 12,
+    minHeight: 40,
+    flex: 1,
+  },
+  compactActionButton: {
+    backgroundColor: "#FF6B9D",
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    marginTop: 8,
+    alignSelf: "flex-end",
+  },
+  compactActionButtonText: {
+    color: "#fff",
+    fontSize: 11,
+    fontWeight: "600",
+  },
 });

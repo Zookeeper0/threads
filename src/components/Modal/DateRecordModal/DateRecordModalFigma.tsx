@@ -12,6 +12,7 @@ import {
   Modal,
   ScrollView,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -39,6 +40,9 @@ interface LocationGroup {
   };
   count: number;
   placeName?: string; // 장소명 추가
+  roadAddress?: string; // 도로명 주소 추가
+  rating?: number; // 평점 추가 (1-5)
+  memo?: string; // 메모 추가
 }
 
 type CoordsDate = {
@@ -71,6 +75,11 @@ const DateRecordModalFigma: React.FC<DateRecordModalFigmaProps> = ({
   const [selectedImages, setSelectedImages] = useState<ImageWithLocation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
+  // 평점과 메모 입력을 위한 상태 추가
+  const [expandedGroupId, setExpandedGroupId] = useState<string | null>(null);
+  const [tempRating, setTempRating] = useState<number>(0);
+  const [tempMemo, setTempMemo] = useState<string>("");
+
   // 로딩 상태 변경 시 상위 컴포넌트에 알림
   useEffect(() => {
     onLoadingChange?.(isLoading);
@@ -97,16 +106,27 @@ const DateRecordModalFigma: React.FC<DateRecordModalFigmaProps> = ({
     },
     onSuccess: (data, variables) => {
       console.log("API 성공:", data, variables);
-      // data.data[0].placeName을 추출하여 저장
+      // placeName 추출
       const firstPlaceName =
         data && data.data && Array.isArray(data.data) && data.data.length > 0
           ? data.data[0].placeName || data.data[0].name // placeName이 없으면 name 사용
           : "알 수 없는 장소";
+
+      // roadAddress 추출
+      const firstRoadAddress =
+        data && data.data && Array.isArray(data.data) && data.data.length > 0
+          ? data.data[0].roadAddress || data.data[0].name // roadAddress이 없으면 name 사용
+          : "알 수 없는 장소";
+
       setLocationGroups((prev) =>
         prev.map((group) =>
           group.representativeLocation.latitude === variables.latitude &&
           group.representativeLocation.longitude === variables.longitude
-            ? { ...group, placeName: firstPlaceName }
+            ? {
+                ...group,
+                placeName: firstPlaceName,
+                roadAddress: firstRoadAddress,
+              }
             : group
         )
       );
@@ -286,7 +306,7 @@ const DateRecordModalFigma: React.FC<DateRecordModalFigmaProps> = ({
   const handlePickImages = async () => {
     try {
       if (!(await ensurePickerPermission())) return;
-
+      setIsLoading(true);
       const result: any = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsMultipleSelection: true,
@@ -297,7 +317,6 @@ const DateRecordModalFigma: React.FC<DateRecordModalFigmaProps> = ({
 
       if (!result.canceled && result.assets?.length) {
         // 먼저 로딩 시작
-        setIsLoading(true);
 
         const newImagesBase: ImageWithLocation[] =
           result.assets?.map((asset: any) => ({
@@ -452,7 +471,116 @@ const DateRecordModalFigma: React.FC<DateRecordModalFigmaProps> = ({
   const handleClose = () => {
     setSelectedImages([]);
     setIsLoading(false);
+    setExpandedGroupId(null);
+    setTempRating(0);
+    setTempMemo("");
     onClose();
+  };
+
+  // 평점 저장 함수
+  const handleSaveRating = (groupId: string) => {
+    setLocationGroups((prev) =>
+      prev.map((group) =>
+        group.id === groupId ? { ...group, rating: tempRating } : group
+      )
+    );
+    setExpandedGroupId(null);
+    setTempRating(0);
+  };
+
+  // 메모 저장 함수
+  const handleSaveMemo = (groupId: string) => {
+    setLocationGroups((prev) =>
+      prev.map((group) =>
+        group.id === groupId ? { ...group, memo: tempMemo } : group
+      )
+    );
+    setExpandedGroupId(null);
+    setTempMemo("");
+  };
+
+  // 평점과 메모 저장 함수
+  const handleSaveRatingAndMemo = (groupId: string) => {
+    handleSaveRating(groupId);
+    handleSaveMemo(groupId);
+    setExpandedGroupId(null);
+  };
+
+  // 입력 취소 함수
+  const handleCancelInput = () => {
+    setExpandedGroupId(null);
+    setTempRating(0);
+    setTempMemo("");
+  };
+
+  // 평점 입력 UI 렌더링
+  const renderRatingInput = (groupId: string) => {
+    return (
+      <View style={styles.ratingInputContainer}>
+        <Text style={styles.ratingLabel}>평점</Text>
+        <View style={styles.starContainer}>
+          {[1, 2, 3, 4, 5].map((star) => (
+            <TouchableOpacity
+              key={star}
+              onPress={() => setTempRating(star)}
+              style={styles.starButton}
+            >
+              <Ionicons
+                name={tempRating >= star ? "star" : "star-outline"}
+                size={24}
+                color={tempRating >= star ? "#FFD700" : "#ccc"}
+              />
+            </TouchableOpacity>
+          ))}
+        </View>
+        <View style={styles.inputActionButtons}>
+          <TouchableOpacity
+            style={styles.saveButton}
+            onPress={() => handleSaveRating(groupId)}
+          >
+            <Text style={styles.saveButtonText}>저장</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.cancelButton}
+            onPress={handleCancelInput}
+          >
+            <Text style={styles.cancelButtonText}>취소</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  };
+
+  // 메모 입력 UI 렌더링
+  const renderMemoInput = (groupId: string) => {
+    return (
+      <View style={styles.memoInputContainer}>
+        <Text style={styles.memoLabel}>메모</Text>
+        <TextInput
+          style={styles.memoTextInput}
+          value={tempMemo}
+          onChangeText={setTempMemo}
+          placeholder="메모를 입력하세요..."
+          multiline
+          numberOfLines={3}
+          textAlignVertical="top"
+        />
+        <View style={styles.inputActionButtons}>
+          <TouchableOpacity
+            style={styles.saveButton}
+            onPress={() => handleSaveMemo(groupId)}
+          >
+            <Text style={styles.saveButtonText}>저장</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.cancelButton}
+            onPress={handleCancelInput}
+          >
+            <Text style={styles.cancelButtonText}>취소</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
   };
 
   // 위경도를 기준으로 이미지 그룹화 (0.001도 차이 내는 것을 같은 장소로 판단)
@@ -561,165 +689,209 @@ const DateRecordModalFigma: React.FC<DateRecordModalFigmaProps> = ({
     const maxDisplayImages = 4;
     const displayImages = group.images.slice(0, maxDisplayImages);
     const remainingCount = Math.max(0, group.images.length - maxDisplayImages);
+    const isExpanded = expandedGroupId === group.id;
 
     return (
-      <View
-        key={group.id}
-        style={[styles.frameParent4, styles.frameParentSpaceBlock]}
-      >
-        {/* 장소 정보 헤더 */}
-        <View style={styles.frameParent5}>
-          <View style={styles.frameParent6}>
-            <Ionicons
-              name="location"
-              style={styles.frameChildLayout}
-              size={24}
-              color="#FF6B9D"
-            />
-            <View style={styles.frameParent7}>
-              <View style={styles.container}>
-                <Text style={styles.text8}>
-                  {group.placeName ? group.placeName : "알 수 없는 장소"}
-                </Text>
+      <View key={group.id}>
+        <View style={[styles.frameParent4, styles.frameParentSpaceBlock]}>
+          {/* 장소 정보 헤더 */}
+          <View style={styles.frameParent5}>
+            <View style={styles.frameParent6}>
+              <Ionicons
+                name="location"
+                style={styles.frameChildLayout}
+                size={24}
+                color="#FF6B9D"
+              />
+              <View style={styles.frameParent7}>
+                <View style={styles.container}>
+                  <Text style={styles.text8}>
+                    {group.placeName ? group.placeName : "알 수 없는 장소"}
+                  </Text>
+                </View>
+                <View style={styles.frame}>
+                  <Text style={[styles.text9, styles.textTypo]}>
+                    {group.roadAddress}
+                  </Text>
+                </View>
               </View>
-              <View style={styles.frame}>
-                <Text style={[styles.text9, styles.textTypo]}>
-                  위도: {group.representativeLocation.latitude.toFixed(6)}
-                </Text>
-              </View>
-              <Text style={[styles.text10, styles.textTypo1]}>
-                경도: {group.representativeLocation.longitude.toFixed(6)}
+            </View>
+            <View style={styles.parent3}>
+              <Text style={[styles.text11, styles.textTypo1]}>
+                {group.count}장
               </Text>
+              <Ionicons
+                name="ellipsis-horizontal"
+                style={styles.frameChildLayout}
+                size={24}
+                color="#666"
+              />
             </View>
           </View>
-          <View style={styles.parent3}>
-            <Text style={[styles.text11, styles.textTypo1]}>
-              {group.count}장
-            </Text>
-            <Ionicons
-              name="ellipsis-horizontal"
-              style={styles.frameChildLayout}
-              size={24}
-              color="#666"
-            />
-          </View>
-        </View>
 
-        {/* 이미지 미리보기 */}
-        <View style={styles.frameParent8}>
-          {displayImages.length <= 2 ? (
-            <View style={styles.imageGridContainer}>
-              {displayImages.map((img, imgIndex) => (
-                <View
-                  key={img.uri}
-                  style={[
-                    styles.imageGridItem,
-                    displayImages.length === 1 && styles.singleImageItem,
-                    displayImages.length === 2 && styles.twoImageItem,
-                  ]}
-                >
-                  <Image
-                    source={{ uri: img.uri }}
-                    style={styles.previewImage}
-                  />
-                  <TouchableOpacity
-                    style={styles.removeButton}
-                    onPress={() => {
-                      const imageIndex = selectedImages.findIndex(
-                        (img2) => img2.uri === img.uri
-                      );
-                      if (imageIndex !== -1) handleRemoveImage(imageIndex);
-                    }}
-                  >
-                    <Ionicons name="close-circle" size={20} color="white" />
-                  </TouchableOpacity>
+          {/* 평점과 메모 입력 UI (확장된 상태일 때만 표시) */}
+          {isExpanded && (
+            <View style={styles.ratingMemoContainer}>
+              {/* 평점 행 */}
+              <View style={styles.ratingMemoRow}>
+                <Text style={styles.ratingMemoLabel}>평점</Text>
+                <View style={styles.compactStarContainer}>
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <TouchableOpacity
+                      key={star}
+                      onPress={() => setTempRating(star)}
+                      style={styles.compactStarButton}
+                    >
+                      <Ionicons
+                        name={tempRating >= star ? "star" : "star-outline"}
+                        size={16}
+                        color={tempRating >= star ? "#FFD700" : "#ccc"}
+                      />
+                    </TouchableOpacity>
+                  ))}
                 </View>
-              ))}
+              </View>
+
+              {/* 메모 행 */}
+              <View style={styles.ratingMemoRow}>
+                <Text style={styles.ratingMemoLabel}>메모</Text>
+                <TextInput
+                  style={styles.compactMemoInput}
+                  value={tempMemo}
+                  onChangeText={setTempMemo}
+                  placeholder="메모를 입력하세요..."
+                  multiline
+                  numberOfLines={2}
+                  textAlignVertical="top"
+                />
+              </View>
+
+              {/* 액션 버튼 */}
+              <View style={styles.inputActionButtons}>
+                <TouchableOpacity
+                  style={styles.compactActionButton}
+                  onPress={() => handleSaveRatingAndMemo(group.id)}
+                >
+                  <Text style={styles.compactActionButtonText}>저장</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.cancelButton}
+                  onPress={handleCancelInput}
+                >
+                  <Text style={styles.cancelButtonText}>취소</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          ) : (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={styles.imageGridContainer}
-              contentContainerStyle={styles.imageGridContent}
-            >
-              {displayImages.map((img, imgIndex) => (
-                <View
-                  key={img.uri}
-                  style={[styles.imageGridItem, styles.multiImageItem]}
-                >
-                  <Image
-                    source={{ uri: img.uri }}
-                    style={styles.previewImage}
-                  />
-                  <TouchableOpacity
-                    style={styles.removeButton}
-                    onPress={() => {
-                      const imageIndex = selectedImages.findIndex(
-                        (img2) => img2.uri === img.uri
-                      );
-                      if (imageIndex !== -1) handleRemoveImage(imageIndex);
-                    }}
-                  >
-                    <Ionicons name="close-circle" size={20} color="white" />
-                  </TouchableOpacity>
-                </View>
-              ))}
-              {remainingCount > 0 && (
-                <View
-                  style={[
-                    styles.imageGridItem,
-                    styles.remainingCountContainer,
-                    styles.multiImageItem,
-                  ]}
-                >
-                  <View style={styles.remainingCountOverlay}>
-                    <Text style={styles.remainingCountText}>
-                      +{remainingCount}
-                    </Text>
-                  </View>
-                </View>
-              )}
-            </ScrollView>
           )}
-          <View style={styles.parent4}>
-            <Text style={[styles.text10, styles.textTypo1]}>더보기</Text>
-            <Ionicons
-              name="chevron-forward"
-              style={styles.frameIcon}
-              size={10}
-              color="#666"
-            />
+
+          {/* 이미지 미리보기 */}
+          <View style={styles.frameParent8}>
+            {displayImages.length <= 2 ? (
+              <View style={styles.imageGridContainer}>
+                {displayImages.map((img, imgIndex) => (
+                  <View
+                    key={img.uri}
+                    style={[
+                      styles.imageGridItem,
+                      displayImages.length === 1 && styles.singleImageItem,
+                      displayImages.length === 2 && styles.twoImageItem,
+                    ]}
+                  >
+                    <Image
+                      source={{ uri: img.uri }}
+                      style={styles.previewImage}
+                    />
+                    <TouchableOpacity
+                      style={styles.removeButton}
+                      onPress={() => {
+                        const imageIndex = selectedImages.findIndex(
+                          (img2) => img2.uri === img.uri
+                        );
+                        if (imageIndex !== -1) handleRemoveImage(imageIndex);
+                      }}
+                    >
+                      <Ionicons name="close-circle" size={20} color="white" />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </View>
+            ) : (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.imageGridContainer}
+                contentContainerStyle={styles.imageGridContent}
+              >
+                {displayImages.map((img, imgIndex) => (
+                  <View
+                    key={img.uri}
+                    style={[styles.imageGridItem, styles.multiImageItem]}
+                  >
+                    <Image
+                      source={{ uri: img.uri }}
+                      style={styles.previewImage}
+                    />
+                    <TouchableOpacity
+                      style={styles.removeButton}
+                      onPress={() => {
+                        const imageIndex = selectedImages.findIndex(
+                          (img2) => img2.uri === img.uri
+                        );
+                        if (imageIndex !== -1) handleRemoveImage(imageIndex);
+                      }}
+                    >
+                      <Ionicons name="close-circle" size={20} color="white" />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+                {remainingCount > 0 && (
+                  <View
+                    style={[
+                      styles.imageGridItem,
+                      styles.remainingCountContainer,
+                      styles.multiImageItem,
+                    ]}
+                  >
+                    <View style={styles.remainingCountOverlay}>
+                      <Text style={styles.remainingCountText}>
+                        +{remainingCount}
+                      </Text>
+                    </View>
+                  </View>
+                )}
+              </ScrollView>
+            )}
+            <View style={styles.parent4}>
+              <Text style={[styles.text10, styles.textTypo1]}>더보기</Text>
+              <Ionicons
+                name="chevron-forward"
+                style={styles.frameIcon}
+                size={10}
+                color="#666"
+              />
+            </View>
           </View>
-        </View>
 
-        <View style={styles.lineView} />
+          <View style={styles.lineView} />
 
-        {/* 액션 버튼들 */}
-        <View style={[styles.frameParent10, styles.frameParentFlexBox]}>
-          <TouchableOpacity
-            style={[
-              styles.wrapper3,
-              styles.wrapperFlexBox,
-              styles.actionButton,
-            ]}
-          >
-            <Ionicons name="create-outline" size={16} color="#666" />
-            <Text style={[styles.textTypo, styles.actionButtonText]}>
-              메모 추가
-            </Text>
-          </TouchableOpacity>
-          <View style={styles.frameWrapper}>
+          {/* 통합 액션 버튼 */}
+          <View style={[styles.frameParent10, styles.frameParentFlexBox]}>
             <TouchableOpacity
               style={[
-                styles.wrapper4,
+                styles.wrapper3,
                 styles.wrapperFlexBox,
                 styles.actionButton,
+                { flex: 1, justifyContent: "center" },
               ]}
+              onPress={() => {
+                setExpandedGroupId(group.id);
+                setTempMemo(group.memo || "");
+                setTempRating(group.rating || 0);
+              }}
             >
-              <Ionicons name="star-outline" size={16} color="#666" />
+              <Ionicons name="create-outline" size={16} color="#666" />
               <Text style={[styles.textTypo, styles.actionButtonText]}>
-                평점 추가
+                메모 및 평점 추가
               </Text>
             </TouchableOpacity>
           </View>
