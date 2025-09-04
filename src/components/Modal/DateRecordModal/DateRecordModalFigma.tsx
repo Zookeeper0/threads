@@ -551,38 +551,6 @@ const DateRecordModalFigma: React.FC<DateRecordModalFigmaProps> = ({
     );
   };
 
-  // 메모 입력 UI 렌더링
-  const renderMemoInput = (groupId: string) => {
-    return (
-      <View style={styles.memoInputContainer}>
-        <Text style={styles.memoLabel}>메모</Text>
-        <TextInput
-          style={styles.memoTextInput}
-          value={tempMemo}
-          onChangeText={setTempMemo}
-          placeholder="메모를 입력하세요..."
-          multiline
-          numberOfLines={3}
-          textAlignVertical="top"
-        />
-        <View style={styles.inputActionButtons}>
-          <TouchableOpacity
-            style={styles.saveButton}
-            onPress={() => handleSaveMemo(groupId)}
-          >
-            <Text style={styles.saveButtonText}>저장</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.cancelButton}
-            onPress={handleCancelInput}
-          >
-            <Text style={styles.cancelButtonText}>취소</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  };
-
   // 위경도를 기준으로 이미지 그룹화 (0.001도 차이 내는 것을 같은 장소로 판단)
   const groupImagesByLocation = (
     images: ImageWithLocation[]

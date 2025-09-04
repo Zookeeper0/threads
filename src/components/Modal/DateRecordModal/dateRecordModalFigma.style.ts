@@ -569,10 +569,11 @@ export const styles = StyleSheet.create({
   },
   cancelButton: {
     backgroundColor: "#f0f0f0",
-    paddingVertical: 8,
-    paddingHorizontal: 16,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
     borderRadius: 6,
-    borderWidth: 1,
+    marginTop: 8,
+    alignSelf: "flex-end",
     borderColor: "#e0e0e0",
   },
   cancelButtonText: {
