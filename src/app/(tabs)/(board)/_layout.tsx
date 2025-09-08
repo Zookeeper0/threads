@@ -163,42 +163,54 @@ export default function TabLayout() {
               </TouchableOpacity>
             </View>
 
-            <MaterialTopTabs
-              screenOptions={{
-                lazy: true,
-                tabBarStyle: {
-                  backgroundColor: colorScheme === "dark" ? "#101010" : "white",
-                  shadowColor: "transparent",
-                  position: "relative",
-                },
-                tabBarLabelStyle: {
-                  fontSize: 16,
-                  fontWeight: "bold",
-                },
-                tabBarPressColor: "transparent",
-                tabBarActiveTintColor:
-                  colorScheme === "dark" ? "white" : "#555",
-                tabBarIndicatorStyle: {
-                  backgroundColor: colorScheme === "dark" ? "white" : "black",
-                  height: 1,
-                },
-                tabBarIndicatorContainerStyle: {
-                  backgroundColor: colorScheme === "dark" ? "#aaa" : "#555",
-                  position: "absolute",
-                  top: 49,
-                  height: 1,
-                },
-              }}
-            >
-              <MaterialTopTabs.Screen
-                name="index"
-                options={{ title: "For You" }}
-              />
-              <MaterialTopTabs.Screen
-                name="following"
-                options={{ title: "Following" }}
-              />
-            </MaterialTopTabs>
+            <View style={styles.tabContainer}>
+              <MaterialTopTabs
+                screenOptions={{
+                  lazy: false,
+                  swipeEnabled: true,
+                  tabBarStyle: {
+                    backgroundColor:
+                      colorScheme === "dark" ? "#101010" : "white",
+                    shadowColor: "transparent",
+                    position: "relative",
+                    elevation: 0,
+                    borderBottomWidth: 0,
+                    height: 44,
+                  },
+                  tabBarLabelStyle: {
+                    fontSize: 16,
+                    fontWeight: "600",
+                    textTransform: "none",
+                    marginBottom: 0,
+                  },
+                  tabBarPressColor: "transparent",
+                  tabBarActiveTintColor:
+                    colorScheme === "dark" ? "white" : "black",
+                  tabBarInactiveTintColor:
+                    colorScheme === "dark" ? "#666" : "#999",
+                  tabBarIndicatorStyle: {
+                    backgroundColor: colorScheme === "dark" ? "white" : "black",
+                    height: 2,
+                    borderRadius: 1,
+                  },
+                  tabBarIndicatorContainerStyle: {
+                    backgroundColor: "transparent",
+                  },
+                  tabBarItemStyle: {
+                    marginBottom: 0,
+                  },
+                }}
+              >
+                <MaterialTopTabs.Screen
+                  name="index"
+                  options={{ title: "앨범" }}
+                />
+                <MaterialTopTabs.Screen
+                  name="following"
+                  options={{ title: "지도" }}
+                />
+              </MaterialTopTabs>
+            </View>
 
             {/* 데이트 기록 모달 */}
             <DateRecordModalFigma
@@ -266,7 +278,7 @@ const styles = StyleSheet.create({
   },
   dateRecordContainer: {
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 8,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: "#ddd",
   },
@@ -304,5 +316,8 @@ const styles = StyleSheet.create({
   },
   dateRecordTextDark: {
     color: "black",
+  },
+  tabContainer: {
+    flex: 1,
   },
 });

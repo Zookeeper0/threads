@@ -694,4 +694,43 @@ export const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "600",
   },
+  // 저장된 리뷰 표시 스타일
+  savedReviewContainer: {
+    backgroundColor: "#f8f8f8",
+    borderRadius: 8,
+    padding: 12,
+    marginVertical: 8,
+  },
+  savedReviewHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 8,
+  },
+  userTagContainer: {
+    backgroundColor: "#FF6B9D",
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  userTag: {
+    color: "white",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  starRatingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  ratingNumber: {
+    marginLeft: 4,
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#333",
+  },
+  savedReviewText: {
+    fontSize: 14,
+    color: "#333",
+    lineHeight: 20,
+  },
 });

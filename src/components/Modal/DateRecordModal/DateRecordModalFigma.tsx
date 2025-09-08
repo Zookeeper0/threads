@@ -1,5 +1,4 @@
 import { locationSearchName } from "@/api/location/locationApi";
-import { ModalCommonProps } from "@/types/modal.types";
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation } from "@tanstack/react-query";
 import * as ImagePicker from "expo-image-picker";
@@ -18,87 +17,70 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { styles } from "./dateRecordModalFigma.style";
+import {
+  CoordsDate,
+  DateRecordModalFigmaProps,
+  ImageWithLocation,
+  LocationGroup,
+  LocationSearchRequest,
+} from "./types";
+import { groupImagesByLocation } from "./utils";
 
-interface ImageWithLocation {
-  uri: string;
-  location?: {
-    latitude: number;
-    longitude: number;
-    address?: string;
-  };
-  date?: string;
-  filename?: string;
-}
-
-interface LocationGroup {
-  id: string;
-  images: ImageWithLocation[];
-  representativeLocation: {
-    latitude: number;
-    longitude: number;
-    address?: string;
-  };
-  count: number;
-  placeName?: string; // 장소명 추가
-  roadAddress?: string; // 도로명 주소 추가
-  rating?: number; // 평점 추가 (1-5)
-  memo?: string; // 메모 추가
-}
-
-type CoordsDate = {
-  latitude?: number;
-  longitude?: number;
-  date?: string;
-};
-
-interface DateRecordModalFigmaProps extends ModalCommonProps {
-  onLoadingChange?: (loading: boolean) => void;
-}
-
-// API 응답 타입 정의
-interface LocationSearchResponse {
-  place_name: string;
-  // 다른 필드들도 있을 수 있음
-}
-
-// API 요청 타입 정의
-interface LocationSearchRequest {
-  latitude: number;
-  longitude: number;
-}
+/**
+ * DateRecordModalFigma 컴포넌트
+ *
+ * 기능:
+ * 1. 이미지 선택 및 촬영
+ * 2. EXIF 데이터에서 위치 및 날짜 정보 추출
+ * 3. 위치 기반으로 이미지 그룹화
+ * 4. 각 그룹에 평점 및 메모 추가/수정
+ * 5. 이미지 그룹 간 이동 기능
+ */
 
 const DateRecordModalFigma: React.FC<DateRecordModalFigmaProps> = ({
   visible,
   onClose,
   onLoadingChange,
 }) => {
+  // ===== 상태 관리 =====
   const [selectedImages, setSelectedImages] = useState<ImageWithLocation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // 평점과 메모 입력을 위한 상태 추가
+  // 평점과 메모 입력을 위한 상태
   const [expandedGroupId, setExpandedGroupId] = useState<string | null>(null);
   const [tempRating, setTempRating] = useState<number>(0);
   const [tempMemo, setTempMemo] = useState<string>("");
 
-  // 수정 모드 상태
+  // 수정 모드 관련 상태
   const [isEditMode, setIsEditMode] = useState(false);
   const [selectedImageForMove, setSelectedImageForMove] = useState<string[]>(
     []
   );
 
-  // 로딩 상태 변경 시 상위 컴포넌트에 알림
+  // ===== 생명주기 관리 =====
+
+  /**
+   * 로딩 상태 변경 시 상위 컴포넌트에 알림
+   */
   useEffect(() => {
     onLoadingChange?.(isLoading);
   }, [isLoading, onLoadingChange]);
 
-  // 모달이 닫히면 자동으로 이미지 선택 시작
+  /**
+   * 모달이 열리면 자동으로 이미지 선택 시작
+   */
   useEffect(() => {
     if (visible && selectedImages.length === 0) {
       handlePickImages();
     }
   }, [visible]);
 
-  // 장소명 가져오기 mutation
+  // ===== API 관련 =====
+
+  /**
+   * 장소명 가져오기 mutation
+   * 좌표를 기반으로 장소명과 도로명 주소를 조회
+   */
   const placeNameMutation = useMutation<
     any, // 실제 응답 타입이 { data: [{ placeName: string, ... }], ... } 형태이므로 any로 둡니다.
     Error,
@@ -308,7 +290,12 @@ const DateRecordModalFigma: React.FC<DateRecordModalFigmaProps> = ({
     return true;
   };
 
-  /** 사진 선택 함수 */
+  // ===== 이미지 처리 함수들 =====
+
+  /**
+   * 갤러리에서 이미지 선택
+   * EXIF 데이터에서 위치 및 날짜 정보 추출하여 이미지에 추가
+   */
   const handlePickImages = async () => {
     try {
       if (!(await ensurePickerPermission())) return;
@@ -402,6 +389,10 @@ const DateRecordModalFigma: React.FC<DateRecordModalFigmaProps> = ({
     }
   };
 
+  /**
+   * 카메라로 사진 촬영
+   * 촬영한 사진의 EXIF 데이터에서 위치 및 날짜 정보 추출
+   */
   const handleTakePhoto = async () => {
     try {
       const okCamera = await ensureCameraPermission();
@@ -473,7 +464,11 @@ const DateRecordModalFigma: React.FC<DateRecordModalFigmaProps> = ({
     setSelectedImages((prev) => prev.filter((_, i) => i !== index));
   };
 
-  // 모달이 닫힐 때 모든 상태값 초기화
+  // ===== 모달 관리 함수들 =====
+
+  /**
+   * 모달이 닫힐 때 모든 상태값 초기화
+   */
   const handleClose = () => {
     setSelectedImages([]);
     setIsLoading(false);
@@ -485,7 +480,12 @@ const DateRecordModalFigma: React.FC<DateRecordModalFigmaProps> = ({
     onClose();
   };
 
-  // 평점 저장 함수
+  // ===== 평점 및 메모 관리 함수들 =====
+
+  /**
+   * 평점 저장
+   * @param groupId 그룹 ID
+   */
   const handleSaveRating = (groupId: string) => {
     setLocationGroups((prev) =>
       prev.map((group) =>
@@ -496,7 +496,10 @@ const DateRecordModalFigma: React.FC<DateRecordModalFigmaProps> = ({
     setTempRating(0);
   };
 
-  // 메모 저장 함수
+  /**
+   * 메모 저장
+   * @param groupId 그룹 ID
+   */
   const handleSaveMemo = (groupId: string) => {
     setLocationGroups((prev) =>
       prev.map((group) =>
@@ -507,71 +510,26 @@ const DateRecordModalFigma: React.FC<DateRecordModalFigmaProps> = ({
     setTempMemo("");
   };
 
-  // 평점과 메모 저장 함수
+  /**
+   * 평점과 메모를 함께 저장
+   * @param groupId 그룹 ID
+   */
   const handleSaveRatingAndMemo = (groupId: string) => {
     handleSaveRating(groupId);
     handleSaveMemo(groupId);
     setExpandedGroupId(null);
   };
 
-  // 입력 취소 함수
+  /**
+   * 입력 취소 - 임시 데이터 초기화
+   */
   const handleCancelInput = () => {
     setExpandedGroupId(null);
     setTempRating(0);
     setTempMemo("");
   };
 
-
-
-  // 위경도를 기준으로 이미지 그룹화 (0.001도 차이 내는 것을 같은 장소로 판단)
-  const groupImagesByLocation = (
-    images: ImageWithLocation[]
-  ): LocationGroup[] => {
-    const groups: LocationGroup[] = [];
-    const processedImages = new Set<string>();
-
-    images.forEach((image) => {
-      if (processedImages.has(image.uri) || !image.location) return;
-
-      const currentGroup: ImageWithLocation[] = [image];
-      processedImages.add(image.uri);
-
-      // 비슷한 위치의 다른 이미지들 찾기
-      images.forEach((otherImage) => {
-        if (
-          otherImage.uri !== image.uri &&
-          !processedImages.has(otherImage.uri) &&
-          otherImage.location
-        ) {
-          const latDiff = Math.abs(
-            image.location!.latitude - otherImage.location!.latitude
-          );
-          const lngDiff = Math.abs(
-            image.location!.longitude - otherImage.location!.longitude
-          );
-
-          // 0.001도 차이 내면 같은 장소로 판단 (약 100m 이내)
-          if (latDiff < 0.001 && lngDiff < 0.001) {
-            currentGroup.push(otherImage);
-            processedImages.add(otherImage.uri);
-          }
-        }
-      });
-
-      // 그룹 생성
-      if (currentGroup.length > 0) {
-        const representative = currentGroup[0];
-        groups.push({
-          id: `group-${groups.length}`,
-          images: currentGroup,
-          representativeLocation: representative.location!,
-          count: currentGroup.length,
-        });
-      }
-    });
-
-    return groups;
-  };
+  // ===== 그룹 관리 =====
 
   // 그룹화된 이미지들
   const [locationGroups, setLocationGroups] = useState<LocationGroup[]>([]);
@@ -598,7 +556,11 @@ const DateRecordModalFigma: React.FC<DateRecordModalFigmaProps> = ({
 
         // 기존 그룹이 있으면 장소명을 유지, 없으면 새로운 그룹 반환
         return existingGroup
-          ? { ...newGroup, placeName: existingGroup.placeName }
+          ? {
+              ...newGroup,
+              placeName: existingGroup.placeName,
+              roadAddress: existingGroup.roadAddress,
+            }
           : newGroup;
       });
 
@@ -625,14 +587,23 @@ const DateRecordModalFigma: React.FC<DateRecordModalFigmaProps> = ({
     }
   }, [selectedImages]);
 
-  /** 수정 모드 토글 함수 */
+  // ===== 수정 모드 관련 함수들 =====
+
+  /**
+   * 수정 모드 토글
+   * 수정 모드가 활성화되면 이미지 선택 및 이동 기능이 활성화됨
+   */
   const handleToggleEditMode = () => {
     setIsEditMode(!isEditMode);
     setSelectedImageForMove([]);
     setExpandedGroupId(null);
   };
 
-  /** 이미지를 다른 그룹으로 이동하는 함수 */
+  /**
+   * 이미지를 다른 그룹으로 이동
+   * @param imageUri 이동할 이미지 URI
+   * @param targetGroupId 대상 그룹 ID
+   */
   const handleMoveImage = (imageUri: string, targetGroupId: string) => {
     if (selectedImageForMove.length === 0) return;
 
@@ -718,8 +689,15 @@ const DateRecordModalFigma: React.FC<DateRecordModalFigmaProps> = ({
     });
   };
 
+  // ===== 렌더링 함수들 =====
 
-  /** 장소 그룹 렌더링 함수 */
+  /**
+   * 장소 그룹 렌더링
+   * 각 그룹의 정보, 이미지, 평점, 메모를 표시
+   * @param group 위치 그룹 데이터
+   * @param index 그룹 인덱스
+   * @returns JSX 요소
+   */
   const renderLocationGroup = (group: LocationGroup, index: number) => {
     const maxDisplayImages = 4;
     const displayImages = group.images.slice(0, maxDisplayImages);
@@ -987,6 +965,43 @@ const DateRecordModalFigma: React.FC<DateRecordModalFigmaProps> = ({
 
           <View style={styles.lineView} />
 
+          {/* 저장된 평점과 리뷰 표시 */}
+          {(group.rating || group.memo) && (
+            <View style={styles.savedReviewContainer}>
+              <View style={styles.savedReviewHeader}>
+                <View style={styles.userTagContainer}>
+                  <Text style={styles.userTag}>해달</Text>
+                </View>
+                <View style={styles.starRatingContainer}>
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Ionicons
+                      key={star}
+                      name={
+                        group.rating && group.rating >= star
+                          ? "star"
+                          : "star-outline"
+                      }
+                      size={14}
+                      color={
+                        group.rating && group.rating >= star
+                          ? "#FFD700"
+                          : "#ccc"
+                      }
+                    />
+                  ))}
+                  {group.rating && (
+                    <Text style={styles.ratingNumber}>
+                      {group.rating.toFixed(1)}
+                    </Text>
+                  )}
+                </View>
+              </View>
+              {group.memo && (
+                <Text style={styles.savedReviewText}>{group.memo}</Text>
+              )}
+            </View>
+          )}
+
           {/* 통합 액션 버튼 */}
           <View style={[styles.frameParent10, styles.frameParentFlexBox]}>
             <TouchableOpacity
@@ -1004,7 +1019,9 @@ const DateRecordModalFigma: React.FC<DateRecordModalFigmaProps> = ({
             >
               <Ionicons name="create-outline" size={16} color="#666" />
               <Text style={[styles.textTypo, styles.actionButtonText]}>
-                메모 및 평점 추가
+                {group.rating || group.memo
+                  ? "메모 및 평점 수정"
+                  : "메모 및 평점 추가"}
               </Text>
             </TouchableOpacity>
           </View>
@@ -1045,6 +1062,11 @@ const DateRecordModalFigma: React.FC<DateRecordModalFigmaProps> = ({
     );
   };
 
+  /**
+   * 이미지 추가 버튼 렌더링
+   * 갤러리에서 선택하거나 카메라로 촬영할 수 있는 버튼 제공
+   * @returns JSX 요소
+   */
   const renderAddImageButton = () => {
     if (selectedImages.length >= 15) return null;
 

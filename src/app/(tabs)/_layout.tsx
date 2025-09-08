@@ -100,13 +100,19 @@ export default function TabLayout() {
         }}
       >
         <Tabs.Screen
-          name="(home)"
+          name="search"
           options={{
-            tabBarLabel: () => null,
+            tabBarLabel: "홈",
+            tabBarLabelStyle: {
+              fontSize: 9,
+              color: colorScheme === "dark" ? "white" : "black",
+              textAlign: "center",
+              marginTop: 2,
+            },
             tabBarIcon: ({ focused }) => (
               <Ionicons
-                name="home"
-                size={24}
+                name="home-outline"
+                size={20}
                 color={
                   focused
                     ? colorScheme === "dark"
@@ -119,13 +125,19 @@ export default function TabLayout() {
           }}
         />
         <Tabs.Screen
-          name="search"
+          name="(board)"
           options={{
-            tabBarLabel: () => null,
+            tabBarLabel: "모리 보드",
+            tabBarLabelStyle: {
+              fontSize: 9,
+              color: colorScheme === "dark" ? "white" : "black",
+              textAlign: "center",
+              marginTop: 2,
+            },
             tabBarIcon: ({ focused }) => (
               <Ionicons
-                name="search"
-                size={24}
+                name="map-outline"
+                size={20}
                 color={
                   focused
                     ? colorScheme === "dark"
@@ -133,6 +145,7 @@ export default function TabLayout() {
                       : "black"
                     : "gray"
                 }
+                style={{ marginStart: 6 }}
               />
             ),
           }}
@@ -153,17 +166,19 @@ export default function TabLayout() {
           options={{
             tabBarLabel: () => null,
             tabBarIcon: ({ focused }) => (
-              <Ionicons
-                name="add"
-                size={24}
-                color={
-                  focused
-                    ? colorScheme === "dark"
-                      ? "white"
-                      : "black"
-                    : "gray"
-                }
-              />
+              <View
+                style={{
+                  width: 55,
+                  height: 55,
+                  borderRadius: 30,
+                  backgroundColor: colorScheme === "dark" ? "#333" : "#666",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  marginBottom: 10,
+                }}
+              >
+                <Ionicons name="add" size={30} color="white" />
+              </View>
             ),
           }}
         />
@@ -178,11 +193,17 @@ export default function TabLayout() {
             },
           }}
           options={{
-            tabBarLabel: () => null,
+            tabBarLabel: "캘린더",
+            tabBarLabelStyle: {
+              fontSize: 9,
+              color: colorScheme === "dark" ? "white" : "black",
+              textAlign: "center",
+              marginTop: 2,
+            },
             tabBarIcon: ({ focused }) => (
               <Ionicons
-                name="heart-outline"
-                size={24}
+                name="calendar-outline"
+                size={20}
                 color={
                   focused
                     ? colorScheme === "dark"
@@ -207,11 +228,17 @@ export default function TabLayout() {
             },
           }}
           options={{
-            tabBarLabel: () => null,
+            tabBarLabel: "마이",
+            tabBarLabelStyle: {
+              fontSize: 9,
+              color: colorScheme === "dark" ? "white" : "black",
+              textAlign: "center",
+              marginTop: 2,
+            },
             tabBarIcon: ({ focused }) => (
               <Ionicons
                 name="person-outline"
-                size={24}
+                size={20}
                 color={
                   focused && user?.id === pathname?.slice(2) // /@zerohch0
                     ? colorScheme === "dark"
@@ -247,7 +274,7 @@ export default function TabLayout() {
               <Text>Login Modal</Text>
             </Pressable>
             <TouchableOpacity onPress={closeLoginModal}>
-              <Ionicons name="close" size={24} color="#555" />
+              <Ionicons name="close" size={20} color="#555" />
             </TouchableOpacity>
           </View>
         </View>
