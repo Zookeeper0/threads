@@ -145,6 +145,7 @@ export default function RootLayout() {
           screenOptions={{
             headerShown: false,
           }}
+          initialRouteName="(tabs)"
         >
           {/* 아래 코드 적용시 탭 레이아웃도 스택처럼 쌓이게 됨 */}
           <Stack.Screen name="(tabs)" />
