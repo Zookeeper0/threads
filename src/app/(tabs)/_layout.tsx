@@ -1,9 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
 import { type BottomTabBarButtonProps } from "@react-navigation/bottom-tabs";
+import { Image } from "expo-image";
 import { Tabs, usePathname, useRouter } from "expo-router";
 import { useContext, useEffect, useRef, useState } from "react";
 import {
+  Dimensions,
   Modal,
+  Platform,
   Pressable,
   Animated as RNAnimated,
   StyleProp,
@@ -18,27 +21,15 @@ import { useSharedValue, withTiming } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AuthContext } from "../_layout";
 
-// Figma에서 가져온 아이콘 URL
-const HOME_ACTIVE_ICON_1 =
-  "http://localhost:3845/assets/f13afbf4730c6ad710ab5d3efcd9a724879a98a0.svg";
-const HOME_ACTIVE_ICON_2 =
-  "http://localhost:3845/assets/51bc2896c48bfe24994175dcdf9465e3886f39a2.svg";
-const HOME_INACTIVE_ICON_1 =
-  "http://localhost:3845/assets/794a779afd75460d2bd13b6b169a57ab2a463a1e.svg";
-const HOME_INACTIVE_ICON_2 =
-  "http://localhost:3845/assets/fc92483020d135d272b71f0066221ed34b1c005c.svg";
-const MEMORY_BOARD_ICON_1 =
-  "http://localhost:3845/assets/159819f6d150aa93c6001433f101c28791008907.svg";
-const MEMORY_BOARD_ICON_2 =
-  "http://localhost:3845/assets/59dd1cfcf37d24d6e99caa4133a97ff819482226.svg";
-const CALENDAR_ICON_1 =
-  "http://localhost:3845/assets/94386111e00b29ffc9c28d77fa1199fada2c90b9.svg";
-const CALENDAR_ICON_2 =
-  "http://localhost:3845/assets/1b8f06732fdb510ae3356741333bc763398b65b3.svg";
-const CALENDAR_ICON_3 =
-  "http://localhost:3845/assets/a972c3bf392f5835e0344b8ec62baab06ec26063.svg";
-const MY_ICON =
-  "http://localhost:3845/assets/4a834572d9322ed0ebcedab3d9b10ab4d956b410.svg";
+// SVG 아이콘 import
+const TabHomeIcon = require("../../assets/svg/tab_home.svg");
+const TabHomeActiveIcon = require("../../assets/svg/tab_home_active.svg");
+const TabMapIcon = require("../../assets/svg/tab_map.svg");
+const TabMapActiveIcon = require("../../assets/svg/tab_map_active.svg");
+const TabCalendarIcon = require("../../assets/svg/tab_calendar.svg");
+const TabCalendarActiveIcon = require("../../assets/svg/tab_calendar_active.svg");
+const TabMyIcon = require("../../assets/svg/tab_my.svg");
+const TabMyActiveIcon = require("../../assets/svg/tab_my_active.svg");
 
 interface AnimatedTabBarButtonProps extends BottomTabBarButtonProps {
   children: React.ReactNode;
@@ -76,7 +67,12 @@ const AnimatedTabBarButton = ({
       onPress={onPress}
       onPressOut={handlePressOut}
       style={[
-        { flex: 1, justifyContent: "center", alignItems: "center" },
+        {
+          width: 59,
+          justifyContent: "center",
+          alignItems: "center",
+          paddingVertical: 0,
+        },
         style,
       ]}
       // Disable Android ripple effect
@@ -141,7 +137,7 @@ export default function TabLayout() {
   useEffect(() => {
     const timer = setTimeout(() => {
       if (pathname === "/(tabs)" || pathname === "/") {
-        router.replace("/(tabs)/search");
+        router.replace("/(tabs)/home");
       }
     }, 100);
     return () => clearTimeout(timer);
@@ -160,11 +156,43 @@ export default function TabLayout() {
     router.push("/login");
   };
 
+  // 안드로이드 네비게이션 바에 따른 탭바 위치 계산
+  const getTabBarMarginBottom = () => {
+    if (isBoardScreen) return -300;
+
+    // 기본 marginBottom
+    const baseMarginBottom = 18;
+
+    // 안드로이드에서 네비게이션 바가 있을 때 (insets.bottom이 0이거나 작은 값)
+    if (Platform.OS === "android") {
+      // insets.bottom이 0보다 크면 safe area를 반영
+      // 안드로이드에서 네비게이션 바가 있으면 보통 insets.bottom이 0이지만,
+      // 시스템 UI가 있으면 추가 여백이 필요할 수 있음
+      if (insets.bottom > 0) {
+        return baseMarginBottom + insets.bottom;
+      }
+      // 네비게이션 바가 있을 때는 추가 여백 필요 (일반적으로 16-24px)
+      // 네비게이션 바가 없으면 기본값 사용
+      return baseMarginBottom;
+    }
+
+    // iOS에서는 safe area를 반영
+    return baseMarginBottom + Math.max(0, insets.bottom - 20);
+  };
+
+  // 탭바 중앙 정렬을 위한 left 값 계산
+  const getTabBarLeft = () => {
+    if (isBoardScreen) return 0;
+    const screenWidth = Dimensions.get("window").width;
+    const tabBarWidth = 330;
+    return (screenWidth - tabBarWidth) / 2;
+  };
+
   return (
     <>
       <Tabs
         backBehavior="history"
-        initialRouteName="search"
+        initialRouteName="home"
         screenOptions={{
           headerShown: false,
           tabBarStyle: [
@@ -172,33 +200,40 @@ export default function TabLayout() {
             {
               backgroundColor: isBoardScreen ? "transparent" : "#FFFCF8",
               borderTopWidth: 0,
-              elevation: isBoardScreen ? 0 : 8,
-              shadowColor: "#000",
+              elevation: isBoardScreen ? 0 : 20,
+              shadowColor: "#E8E8E8",
               shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: isBoardScreen ? 0 : 0.1,
-              shadowRadius: 10,
+              shadowOpacity: isBoardScreen ? 0 : 1,
+              shadowRadius: 20,
               height: isBoardScreen ? 0 : 64,
               paddingBottom: isBoardScreen ? 0 : 9,
               paddingTop: isBoardScreen ? 0 : 9,
-              paddingHorizontal: isBoardScreen ? 0 : 16,
+              paddingLeft: isBoardScreen ? 0 : 14,
               borderRadius: 9999,
-              marginHorizontal: "auto",
-              marginBottom: isBoardScreen ? -300 : Math.max(9, insets.bottom),
-              width: isBoardScreen ? 0 : 360,
+              marginBottom: getTabBarMarginBottom(),
+              width: isBoardScreen ? 0 : 330,
               position: "absolute",
+              left: 0,
+              right: 0,
               bottom: isBoardScreen ? -300 : tabBarTranslateY,
-              alignSelf: "center",
               opacity: isBoardScreen ? 0 : tabBarOpacity,
               overflow: "hidden",
               pointerEvents: isBoardScreen ? "none" : "auto",
               zIndex: isBoardScreen ? -999 : 1,
+              gap: isBoardScreen ? 0 : 20,
+              justifyContent: "space-between",
+              alignSelf: "center" as const,
+              marginHorizontal: isBoardScreen
+                ? 0
+                : (Dimensions.get("window").width - 330) / 2,
+              boxShadow: "0px 4px 20px #e8e8e8",
             },
           ],
           tabBarButton: (props: any) => <AnimatedTabBarButton {...props} />,
         }}
       >
         <Tabs.Screen
-          name="search"
+          name="home"
           options={{
             tabBarLabel: ({ focused }) => (
               <Text
@@ -209,36 +244,24 @@ export default function TabLayout() {
                     fontWeight: focused ? "700" : "400",
                   },
                 ]}
+                numberOfLines={1}
               >
                 홈
               </Text>
             ),
             tabBarIcon: ({ focused }) => {
-              const iconSize = focused ? 28 : 24;
-              // SVG가 로드되지 않을 경우를 대비해 Ionicons로 폴백
-              if (focused) {
-                return (
-                  <View
-                    style={[
-                      styles.iconContainer,
-                      { width: iconSize, height: iconSize },
-                    ]}
-                  >
-                    <Ionicons name="home" size={iconSize} color="#FF6638" />
-                  </View>
-                );
-              }
+              const iconSize = 30;
               return (
                 <View
                   style={[
                     styles.iconContainer,
-                    { width: iconSize, height: iconSize },
+                    focused && styles.iconContainerShadow,
                   ]}
                 >
-                  <Ionicons
-                    name="home-outline"
-                    size={iconSize}
-                    color="#432014"
+                  <Image
+                    source={focused ? TabHomeActiveIcon : TabHomeIcon}
+                    style={{ width: iconSize, height: iconSize }}
+                    contentFit="contain"
                   />
                 </View>
               );
@@ -257,23 +280,28 @@ export default function TabLayout() {
                     fontWeight: focused ? "700" : "400",
                   },
                 ]}
+                numberOfLines={1}
               >
                 메모리보드
               </Text>
             ),
             tabBarIcon: ({ focused }) => {
-              const iconSize = focused ? 28 : 24;
+              const iconSize = 30;
               return (
                 <View
                   style={[
                     styles.iconContainer,
-                    { width: iconSize, height: iconSize },
+                    focused && styles.iconContainerShadow,
+                    {
+                      position: "absolute",
+                      left: 6,
+                    },
                   ]}
                 >
-                  <Ionicons
-                    name={focused ? "map" : "map-outline"}
-                    size={iconSize}
-                    color={focused ? "#31170F" : "#432014"}
+                  <Image
+                    source={focused ? TabMapActiveIcon : TabMapIcon}
+                    style={{ width: iconSize, height: iconSize }}
+                    contentFit="contain"
                   />
                 </View>
               );
@@ -282,14 +310,6 @@ export default function TabLayout() {
         />
         <Tabs.Screen
           name="calendar"
-          listeners={{
-            tabPress: (e) => {
-              if (!isLoggedIn) {
-                e.preventDefault();
-                openLoginModal();
-              }
-            },
-          }}
           options={{
             tabBarLabel: ({ focused }) => (
               <Text
@@ -300,23 +320,24 @@ export default function TabLayout() {
                     fontWeight: focused ? "700" : "400",
                   },
                 ]}
+                numberOfLines={1}
               >
                 캘린더
               </Text>
             ),
             tabBarIcon: ({ focused }) => {
-              const iconSize = focused ? 28 : 24;
+              const iconSize = 30;
               return (
                 <View
                   style={[
                     styles.iconContainer,
-                    { width: iconSize, height: iconSize },
+                    focused && styles.iconContainerShadow,
                   ]}
                 >
-                  <Ionicons
-                    name={focused ? "calendar" : "calendar-outline"}
-                    size={iconSize}
-                    color={focused ? "#31170F" : "#432014"}
+                  <Image
+                    source={focused ? TabCalendarActiveIcon : TabCalendarIcon}
+                    style={{ width: iconSize, height: iconSize }}
+                    contentFit="contain"
                   />
                 </View>
               );
@@ -325,47 +346,34 @@ export default function TabLayout() {
         />
         <Tabs.Screen
           name="[username]"
-          listeners={{
-            tabPress: (e) => {
-              e.preventDefault();
-              if (!isLoggedIn) {
-                openLoginModal();
-              } else {
-                router.navigate(`/@${user.id}`);
-              }
-            },
-          }}
           options={{
-            tabBarLabel: ({ focused }) => {
-              const isActive = focused && user?.id === pathname?.slice(2);
-              return (
-                <Text
-                  style={[
-                    styles.tabBarLabel,
-                    {
-                      color: "#432014",
-                      fontWeight: isActive ? "700" : "400",
-                    },
-                  ]}
-                >
-                  마이
-                </Text>
-              );
-            },
+            tabBarLabel: ({ focused }) => (
+              <Text
+                style={[
+                  styles.tabBarLabel,
+                  {
+                    color: "#432014",
+                    fontWeight: focused ? "700" : "400",
+                  },
+                ]}
+                numberOfLines={1}
+              >
+                마이
+              </Text>
+            ),
             tabBarIcon: ({ focused }) => {
-              const isActive = focused && user?.id === pathname?.slice(2);
-              const iconSize = isActive ? 28 : 24;
+              const iconSize = 30;
               return (
                 <View
                   style={[
                     styles.iconContainer,
-                    { width: iconSize, height: iconSize },
+                    focused && styles.iconContainerShadow,
                   ]}
                 >
-                  <Ionicons
-                    name={isActive ? "person" : "person-outline"}
-                    size={iconSize}
-                    color={isActive ? "#31170F" : "#432014"}
+                  <Image
+                    source={focused ? TabMyActiveIcon : TabMyIcon}
+                    style={{ width: iconSize, height: iconSize }}
+                    contentFit="contain"
                   />
                 </View>
               );
@@ -384,6 +392,7 @@ export default function TabLayout() {
             href: null,
           }}
         />
+
         <Tabs.Screen
           name="(post)/[username]/post/[postID]"
           options={{
@@ -425,15 +434,27 @@ const styles = StyleSheet.create({
   tabBarLabel: {
     fontSize: 10,
     textAlign: "center",
-    marginTop: 4,
+    marginTop: 2,
     letterSpacing: -0.24,
+    fontFamily: "Pretendard Variable",
+    color: "#432014",
+    lineHeight: 12,
+    includeFontPadding: false,
   },
   iconContainer: {
-    width: 28,
-    height: 28,
+    width: 30,
+    height: 30,
     position: "relative",
     justifyContent: "center",
     alignItems: "center",
+    overflow: "hidden",
+  },
+  iconContainerShadow: {
+    shadowColor: "rgba(109, 94, 77, 0.11)",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.11,
+    shadowRadius: 2,
+    elevation: 2,
   },
   iconLayer: {
     position: "absolute",

@@ -26,16 +26,12 @@ const HERO_IMAGE =
   "https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=400&h=600&fit=crop";
 const MAP_IMAGE =
   "https://images.unsplash.com/photo-1524661135-423995f22d0b?w=400&h=200&fit=crop";
-const PROFILE_IMAGE_1 =
-  "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop";
-const PROFILE_IMAGE_2 =
-  "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop";
 
 interface RecentMemory {
   id: string;
   title: string;
-  description: string;
-  profileImages: string[];
+  date: string;
+  imageUrl: string;
 }
 
 interface DDayCard {
@@ -88,20 +84,30 @@ export default function Index() {
     {
       id: "1",
       title: "슈퍼 잼민이",
-      description: "수달 님이 앨범에 캡션을 남겼어요.",
-      profileImages: [PROFILE_IMAGE_1, PROFILE_IMAGE_2],
+      date: "3일 전",
+      imageUrl:
+        "http://localhost:3845/assets/9b8974a5e686ef8741ef4f404e037c71632b80a3.png",
     },
     {
       id: "2",
       title: "해달 생일 🎂",
-      description: "수달 님이 앨범을 생성했어요.",
-      profileImages: [PROFILE_IMAGE_2],
+      date: "3일 전",
+      imageUrl:
+        "http://localhost:3845/assets/82db08c3a962ddb03457b9f6dcc8c17bb49699fe.png",
     },
     {
       id: "3",
       title: "청도 글램핑",
-      description: "해달 님이 장소를 추가했어요.",
-      profileImages: [PROFILE_IMAGE_1, PROFILE_IMAGE_2],
+      date: "2주 전",
+      imageUrl:
+        "http://localhost:3845/assets/e4b7d81d22483211645f93f117300e35f95858ce.png",
+    },
+    {
+      id: "4",
+      title: "한강 산책면",
+      date: "한달전",
+      imageUrl:
+        "http://localhost:3845/assets/73b38b2f9233fe14405af7d470c20bf9e76485a6.png",
     },
   ];
 
@@ -286,7 +292,7 @@ export default function Index() {
       style={[
         styles.container,
         { paddingTop: 0, paddingBottom: insets.bottom },
-        colorScheme === "dark" ? styles.containerDark : styles.containerLight,
+        colorScheme === "light" ? styles.containerLight : styles.containerDark,
       ]}
     >
       <ScrollView
@@ -350,7 +356,14 @@ export default function Index() {
           <View style={styles.memoryMapCard}>
             <View style={styles.memoryMapHeader}>
               <Text style={styles.memoryMapTitle}>우리의 추억 지도</Text>
-              <Ionicons name="chevron-forward" size={16} color="#737373" />
+              <Ionicons name="chevron-forward" size={24} color="#31170F" />
+            </View>
+            <View style={styles.mapSubTitleContainer}>
+              <Text style={styles.mapSubTitle}>
+                <Text style={styles.mapSubTitleText}>함께한 장소</Text>{" "}
+                <Text style={styles.mapSubTitleBold}>8</Text>곳
+              </Text>
+              <Ionicons name="location" size={14} color="#FF7347" />
             </View>
             <View style={styles.mapContainer}>
               <Image
@@ -359,10 +372,26 @@ export default function Index() {
                 contentFit="cover"
               />
               {/* 지도 마커들 */}
-              <View style={styles.mapMarker1} />
-              <View style={styles.mapMarker2} />
-              <View style={styles.mapMarker3} />
-              <View style={styles.mapMarker4} />
+              <View style={styles.mapMarker1}>
+                <View style={styles.mapMarkerOuter} />
+                <View style={styles.mapMarkerInner} />
+              </View>
+              <View style={styles.mapMarker2}>
+                <View style={styles.mapMarkerOuter} />
+                <View style={styles.mapMarkerInner} />
+              </View>
+              <View style={styles.mapMarker3}>
+                <View style={styles.mapMarkerOuter} />
+                <View style={styles.mapMarkerInner} />
+              </View>
+              <View style={styles.mapMarker4}>
+                <View style={styles.mapMarkerOuter} />
+                <View style={styles.mapMarkerInner} />
+              </View>
+              <View style={styles.mapMarker5}>
+                <View style={styles.mapMarkerOuter} />
+                <View style={styles.mapMarkerInner} />
+              </View>
             </View>
           </View>
 
@@ -372,49 +401,36 @@ export default function Index() {
               <Text style={styles.sectionTitle}>최근 추억</Text>
               <Text style={styles.moreLink}>더보기</Text>
             </View>
-            <View style={styles.memoriesList}>
-              {recentMemories.map((memory) => (
-                <View key={memory.id} style={styles.memoryItem}>
-                  <View style={styles.memoryItemLeft}>
-                    <View style={styles.memoryThumbnail} />
-                    <View style={styles.memoryInfo}>
-                      <Text style={styles.memoryTitle}>{memory.title}</Text>
-                      <Text style={styles.memoryDescription}>
-                        {memory.description}
-                      </Text>
-                      <View style={styles.profileGroup}>
-                        {memory.profileImages.map((img, idx) => (
-                          <View
-                            key={idx}
-                            style={[
-                              styles.profileImage,
-                              idx > 0 && styles.profileImageOverlap,
-                            ]}
-                          >
-                            <Image
-                              source={{ uri: img }}
-                              style={styles.profileImageInner}
-                              contentFit="cover"
-                            />
-                          </View>
-                        ))}
-                      </View>
-                    </View>
-                  </View>
-                  <View style={styles.memoryItemRight}>
-                    <Ionicons
-                      name="chevron-forward"
-                      size={16}
-                      color="#737373"
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.memoriesList}
+            >
+              {recentMemories.map((memory, index) => (
+                <View key={memory.id} style={styles.memoryCard}>
+                  <View style={styles.memoryImageContainer}>
+                    <Image
+                      source={{ uri: memory.imageUrl }}
+                      style={styles.memoryImage}
+                      contentFit="cover"
                     />
                   </View>
+                  <Text
+                    style={[
+                      styles.memoryCardTitle,
+                      index === 0 && styles.memoryCardTitleFirst,
+                    ]}
+                  >
+                    {memory.title}
+                  </Text>
+                  <Text style={styles.memoryCardDate}>{memory.date}</Text>
                 </View>
               ))}
-            </View>
+            </ScrollView>
           </View>
 
           {/* 다가오는 이벤트 섹션 */}
-          <View style={styles.eventCard}>
+          {/* <View style={styles.eventCard}>
             <Text style={styles.eventLabel}>다가오는 이벤트</Text>
             <View style={styles.eventContent}>
               <View style={styles.eventLeft}>
@@ -423,7 +439,7 @@ export default function Index() {
               </View>
               <Text style={styles.eventCountdown}>D-40</Text>
             </View>
-          </View>
+          </View> */}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -435,19 +451,19 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   containerLight: {
-    backgroundColor: "#ffffff",
+    backgroundColor: "#FAF8F7",
   },
   containerDark: {
-    backgroundColor: "#101010",
+    backgroundColor: "#FAF8F7",
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 20,
+    //   paddingBottom: 96, // 탭바 높이(64) + marginBottom(32)
   },
   heroSection: {
-    height: 205,
+    height: 215,
     width: "100%",
     position: "relative",
     overflow: "hidden",
@@ -549,33 +565,50 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255, 255, 255, 0.3)",
   },
   dotActive: {
-    backgroundColor: "#ffffff",
+    backgroundColor: "#FAF8F7",
   },
   mainContent: {
-    backgroundColor: "#ffffff",
+    backgroundColor: "#FAF8F7",
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
-    marginTop: -32,
-    paddingTop: 24,
+    marginTop: -8,
+    paddingTop: 8,
     paddingHorizontal: 16,
-    minHeight: 833,
+    paddingBottom: 24,
   },
   memoryMapCard: {
-    backgroundColor: "#ffffff",
+    backgroundColor: "#FAF8F7",
     borderRadius: 16,
-    padding: 16,
     marginBottom: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4.7,
-    elevation: 2,
+    paddingVertical: 16,
   },
   memoryMapHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 15,
+    marginBottom: 4,
+  },
+  mapSubTitleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginBottom: 8,
+  },
+  mapSubTitle: {
+    fontFamily: "Pretendard Variable",
+    fontWeight: "500",
+    fontSize: 14,
+    lineHeight: 20,
+    color: "#6F605B",
+    letterSpacing: -0.28,
+  },
+  mapSubTitleText: {
+    color: "#6F605B",
+  },
+  mapSubTitleBold: {
+    fontFamily: "Pretendard Variable",
+    fontWeight: "700",
+    color: "#FF6638",
   },
   memoryMapTitle: {
     fontFamily: "Pretendard Variable",
@@ -599,41 +632,67 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: "30%",
     top: "65%",
-    width: 18,
-    height: 22,
-    backgroundColor: "#FF8D28",
-    borderRadius: 9,
-    transform: [{ translateX: -9 }, { translateY: -11 }],
+    width: 20,
+    height: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    transform: [{ translateX: -10 }, { translateY: -10 }],
   },
   mapMarker2: {
     position: "absolute",
     left: "55%",
     top: "35%",
-    width: 18,
-    height: 22,
-    backgroundColor: "#FF8D28",
-    borderRadius: 9,
-    transform: [{ translateX: -9 }, { translateY: -11 }],
+    width: 20,
+    height: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    transform: [{ translateX: -10 }, { translateY: -10 }],
   },
   mapMarker3: {
     position: "absolute",
     left: "80%",
     top: "70%",
-    width: 18,
-    height: 22,
-    backgroundColor: "#FF8D28",
-    borderRadius: 9,
-    transform: [{ translateX: -9 }, { translateY: -11 }],
+    width: 20,
+    height: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    transform: [{ translateX: -10 }, { translateY: -10 }],
   },
   mapMarker4: {
     position: "absolute",
     left: "85%",
     top: "25%",
-    width: 18,
-    height: 22,
-    backgroundColor: "#FF8D28",
-    borderRadius: 9,
-    transform: [{ translateX: -9 }, { translateY: -11 }],
+    width: 20,
+    height: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    transform: [{ translateX: -10 }, { translateY: -10 }],
+  },
+  mapMarker5: {
+    position: "absolute",
+    left: "50%",
+    top: "45%",
+    width: 20,
+    height: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    transform: [{ translateX: -10 }, { translateY: -10 }],
+  },
+  mapMarkerOuter: {
+    position: "absolute",
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: "#4A90E2",
+    borderStyle: "dashed",
+    backgroundColor: "transparent",
+  },
+  mapMarkerInner: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: "#FF7347",
   },
   recentMemoriesSection: {
     marginBottom: 16,
@@ -661,69 +720,46 @@ const styles = StyleSheet.create({
     letterSpacing: -0.28,
   },
   memoriesList: {
-    gap: 8,
-  },
-  memoryItem: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 8,
-  },
-  memoryItemLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    flex: 1,
-  },
-  memoryThumbnail: {
-    width: 80,
-    height: 80,
-    borderRadius: 16,
-    backgroundColor: "#BDBDBD",
-  },
-  memoryInfo: {
-    flex: 1,
     gap: 8,
+    paddingRight: 16,
   },
-  memoryTitle: {
-    fontFamily: "Pretendard",
-    fontWeight: "700",
-    fontSize: 16,
-    lineHeight: 24,
-    color: "#040404",
-    letterSpacing: -0.32,
+  memoryCard: {
+    alignItems: "center",
+    gap: 8,
+    width: 85,
   },
-  memoryDescription: {
+  memoryImageContainer: {
+    width: 85,
+    height: 85,
+    borderRadius: 10,
+    overflow: "hidden",
+    backgroundColor: "#E8E3E0",
+  },
+  memoryImage: {
+    width: "100%",
+    height: "100%",
+  },
+  memoryCardTitle: {
     fontFamily: "Pretendard Variable",
     fontWeight: "500",
     fontSize: 14,
     lineHeight: 20,
-    color: "#A3A3A3",
+    color: "#31170F",
+    textAlign: "center",
     letterSpacing: -0.28,
   },
-  profileGroup: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingRight: 6,
+  memoryCardTitleFirst: {
+    color: "#432014",
   },
-  profileImage: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: "#ffffff",
-    overflow: "hidden",
-    marginLeft: -6,
-  },
-  profileImageOverlap: {
-    zIndex: 1,
-  },
-  profileImageInner: {
-    width: "100%",
-    height: "100%",
-  },
-  memoryItemRight: {
-    padding: 6,
+  memoryCardDate: {
+    fontFamily: "Pretendard Variable",
+    fontWeight: "500",
+    fontSize: 12,
+    lineHeight: 16,
+    color: "#A39892",
+    textAlign: "center",
+    letterSpacing: -0.24,
   },
   eventCard: {
     backgroundColor: "#E5E5E5",

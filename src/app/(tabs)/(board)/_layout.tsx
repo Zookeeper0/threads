@@ -38,7 +38,7 @@ export default function TabLayout() {
       >
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => router.push("/(tabs)/search")}
+          onPress={() => router.push("/(tabs)/home")}
         >
           <View style={styles.backButtonContainer}>
             <Ionicons name="chevron-back" size={20} color="#6A5A4A" />
