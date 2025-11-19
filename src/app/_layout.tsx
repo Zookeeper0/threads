@@ -2,7 +2,10 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { router, Stack } from "expo-router";
 import * as SecureStore from "expo-secure-store";
+import { Appearance } from "react-native";
 import { createContext, useEffect, useState } from "react";
+
+const COLOR_SCHEME_KEY = "@app:colorScheme";
 
 export interface User {
   id: string;
@@ -131,9 +134,21 @@ export default function RootLayout() {
   };
 
   useEffect(() => {
+    // 사용자 정보 불러오기
     AsyncStorage.getItem("user").then((user) => {
       if (user) {
         setUser(user ? JSON.parse(user) : null);
+      }
+    });
+
+    // 저장된 컬러 스키마 불러오기 및 적용
+    AsyncStorage.getItem(COLOR_SCHEME_KEY).then((savedScheme) => {
+      if (savedScheme) {
+        if (savedScheme === "auto") {
+          Appearance.setColorScheme(undefined);
+        } else if (savedScheme === "light" || savedScheme === "dark") {
+          Appearance.setColorScheme(savedScheme);
+        }
       }
     });
   }, []);

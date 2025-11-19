@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { type BottomTabBarButtonProps } from "@react-navigation/bottom-tabs";
 import { Image } from "expo-image";
-import { Tabs, usePathname, useRouter } from "expo-router";
+import { Tabs, usePathname, useRouter, useSegments } from "expo-router";
 import { useContext, useEffect, useRef, useState } from "react";
 import {
   Dimensions,
@@ -91,12 +91,20 @@ export default function TabLayout() {
   const isLoggedIn = !!user;
   const colorScheme = useColorScheme();
   const pathname = usePathname();
+  const segments = useSegments();
   const insets = useSafeAreaInsets();
   console.log("pathname", pathname);
+  console.log("segments", segments);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
   // 메모리보드 화면일 때 탭바 숨기기
-  const isBoardScreen = pathname?.includes("(board)");
+  // segments를 사용하여 더 정확하게 감지
+  const isBoardScreen =
+    pathname?.includes("(board)") ||
+    pathname?.includes("/board") ||
+    segments.some(
+      (segment: string) => segment === "(board)" || segment === "board"
+    );
   const translateY = useSharedValue(isBoardScreen ? 200 : 0);
 
   // 탭바 translateY 값을 일반 숫자로 변환 (애니메이션 적용을 위해)
@@ -107,7 +115,8 @@ export default function TabLayout() {
 
   // 탭바 애니메이션
   useEffect(() => {
-    const targetY = isBoardScreen ? 200 : 0;
+    // 아래에서 위로 올라오도록 음수에서 0으로
+    const targetY = isBoardScreen ? -300 : 0;
     const targetOpacity = isBoardScreen ? 0 : 1;
 
     translateY.value = withTiming(targetY, {
@@ -270,6 +279,12 @@ export default function TabLayout() {
         />
         <Tabs.Screen
           name="(board)"
+          listeners={{
+            tabPress: (e) => {
+              e.preventDefault();
+              router.push("/(tabs)/(board)/album");
+            },
+          }}
           options={{
             tabBarLabel: ({ focused }) => (
               <Text

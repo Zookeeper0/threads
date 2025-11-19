@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { BlurView } from "expo-blur"; // For background blur effect
 import React, { useContext, useState } from "react";
 import {
@@ -13,6 +14,8 @@ import {
   View,
 } from "react-native";
 import { AuthContext } from "../app/_layout";
+
+const COLOR_SCHEME_KEY = "@app:colorScheme";
 
 interface SideMenuProps {
   isVisible: boolean;
@@ -186,8 +189,9 @@ const SideMenu: React.FC<SideMenuProps> = ({ isVisible, onClose }) => {
                         backgroundColor: "#888",
                       },
                 ]}
-                onPress={() => {
+                onPress={async () => {
                   Appearance.setColorScheme("light");
+                  await AsyncStorage.setItem(COLOR_SCHEME_KEY, "light");
                 }}
               >
                 <Ionicons
@@ -205,8 +209,9 @@ const SideMenu: React.FC<SideMenuProps> = ({ isVisible, onClose }) => {
                       }
                     : styles.appearanceButtonLight,
                 ]}
-                onPress={() => {
+                onPress={async () => {
                   Appearance.setColorScheme("dark");
+                  await AsyncStorage.setItem(COLOR_SCHEME_KEY, "dark");
                 }}
               >
                 <Ionicons
@@ -226,8 +231,9 @@ const SideMenu: React.FC<SideMenuProps> = ({ isVisible, onClose }) => {
                     ? styles.appearanceButtonDark
                     : styles.appearanceButtonLight,
                 ]}
-                onPress={() => {
+                onPress={async () => {
                   Appearance.setColorScheme(undefined);
+                  await AsyncStorage.setItem(COLOR_SCHEME_KEY, "auto");
                 }}
               >
                 <Text

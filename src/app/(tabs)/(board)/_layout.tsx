@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Slot, router, usePathname, useSegments } from "expo-router";
+import { useEffect } from "react";
 import {
   StyleSheet,
   Text,
@@ -14,6 +15,22 @@ export default function TabLayout() {
   const insets = useSafeAreaInsets();
   const pathname = usePathname();
   const segments = useSegments();
+
+  // 기본 경로일 때 앨범 화면으로 리다이렉트
+  useEffect(() => {
+    // (board)의 기본 경로(index.tsx)일 때 앨범으로 리다이렉트
+    const isBoardRoot =
+      pathname === "/(tabs)/(board)" ||
+      pathname === "/(tabs)/(board)/" ||
+      (pathname?.includes("(board)") &&
+        !pathname?.includes("/album") &&
+        !pathname?.includes("/index") &&
+        segments[segments.length - 1] !== "album");
+
+    if (isBoardRoot) {
+      router.replace("/(tabs)/(board)/album");
+    }
+  }, [pathname, segments]);
 
   // 현재 경로에 따라 지도/앨범 뷰 판단
   const isMapView = pathname?.includes("/album") === false;
