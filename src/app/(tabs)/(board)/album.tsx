@@ -193,7 +193,11 @@ export default function AlbumView() {
         {/* 앨범 그리드 */}
         <View style={styles.albumGrid}>
           {albums.map((album) => (
-            <View key={album.id} style={styles.albumCard}>
+            <TouchableOpacity
+              key={album.id}
+              style={styles.albumCard}
+              onPress={() => router.push(`/album/${album.id}`)}
+            >
               <Image
                 source={{ uri: album.coverImage }}
                 style={styles.albumCover}
@@ -242,7 +246,7 @@ export default function AlbumView() {
                 <Text style={styles.albumTitle}>{album.title}</Text>
                 <Text style={styles.albumDescription}>{album.description}</Text>
               </View>
-            </View>
+            </TouchableOpacity>
           ))}
         </View>
       </ScrollView>
