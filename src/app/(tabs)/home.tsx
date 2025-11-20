@@ -1,16 +1,22 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
-import { useContext, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import {
-  Dimensions,
-  PanResponder,
   ScrollView,
   StyleSheet,
   Text,
   View,
   useColorScheme,
 } from "react-native";
+import {
+  Gesture,
+  GestureDetector,
+  GestureHandlerRootView,
+} from "react-native-gesture-handler";
 import Animated, {
+  Extrapolate,
+  interpolate,
+  runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
@@ -50,7 +56,8 @@ export default function Index() {
   const [currentDDayIndex, setCurrentDDayIndex] = useState(0);
   const translateY = useSharedValue(0);
   const currentIndex = useSharedValue(0);
-  const screenHeight = Dimensions.get("window").height;
+  const CARD_HEIGHT = 78;
+  const CARD_SPACING = 2;
 
   const dDayCards: DDayCard[] = [
     {
@@ -111,171 +118,170 @@ export default function Index() {
     },
   ];
 
-  const panResponder = PanResponder.create({
-    onStartShouldSetPanResponder: () => {
-      // ScrollView와의 충돌 방지를 위해 false 반환
-      return false;
-    },
-    onMoveShouldSetPanResponder: (_, gestureState) => {
-      // 세로 스와이프가 가로 스와이프보다 크고, 충분히 움직였을 때만 처리
-      // ScrollView 스크롤과 구분하기 위해 더 엄격한 조건
-      return (
-        Math.abs(gestureState.dy) > Math.abs(gestureState.dx) &&
-        Math.abs(gestureState.dy) > 15 &&
-        Math.abs(gestureState.dx) < 30
-      );
-    },
-    onPanResponderTerminationRequest: () => {
-      // ScrollView가 제스처를 가져가려 할 때 허용
-      return true;
-    },
-    onPanResponderGrant: () => {
-      // 제스처 시작 시 현재 인덱스 동기화
-      currentIndex.value = currentDDayIndex;
-      translateY.value = 0;
-    },
-    onPanResponderMove: (_, gestureState) => {
-      // 스와이프 중 실시간 애니메이션
-      // 카드 높이(78px)를 기준으로 정규화
-      const cardHeight = 78;
-      translateY.value = gestureState.dy;
-    },
-    onPanResponderRelease: (_, gestureState) => {
-      const threshold = 50;
-      const velocity = gestureState.vy;
-      const cardHeight = 78;
+  // 인덱스 변경 함수
+  const updateIndex = (newIndex: number) => {
+    if (newIndex !== currentDDayIndex) {
+      setCurrentDDayIndex(newIndex);
+    }
+  };
 
-      let newIndex = currentDDayIndex;
+  // currentIndex를 currentDDayIndex와 동기화
+  useEffect(() => {
+    currentIndex.value = currentDDayIndex;
+  }, [currentDDayIndex, currentIndex]);
 
-      if (Math.abs(gestureState.dy) > threshold || Math.abs(velocity) > 0.5) {
-        if (gestureState.dy > 0 && currentDDayIndex > 0) {
-          // 아래로 스와이프 - 이전 카드
-          newIndex = currentDDayIndex - 1;
-        } else if (
-          gestureState.dy < 0 &&
-          currentDDayIndex < dDayCards.length - 1
-        ) {
-          // 위로 스와이프 - 다음 카드
-          newIndex = currentDDayIndex + 1;
-        }
-      }
+  // 제스처 핸들러
+  const panGesture = useMemo(
+    () =>
+      Gesture.Pan()
+        .activeOffsetY([-10, 10]) // 세로 스와이프만 활성화
+        .failOffsetX([-30, 30]) // 가로 스와이프는 무시 (ScrollView가 처리)
+        .onStart(() => {
+          // 제스처 시작 시 현재 인덱스를 shared value에 동기화
+          translateY.value = 0;
+        })
+        .onUpdate((event) => {
+          // 세로 스와이프만 처리
+          translateY.value = event.translationY;
+        })
+        .onEnd((event) => {
+          const threshold = 30;
+          const velocity = event.velocityY;
 
-      // 인덱스가 변경되면 애니메이션으로 전환
-      if (newIndex !== currentDDayIndex) {
-        currentIndex.value = withSpring(newIndex, {
-          damping: 20,
-          stiffness: 100,
-        });
-        setCurrentDDayIndex(newIndex);
-      }
+          // 현재 인덱스를 shared value에서 가져옴
+          const currentIdx = Math.round(currentIndex.value);
+          let newIndex = currentIdx;
 
-      // 스프링 애니메이션으로 원래 위치로 복귀
-      translateY.value = withSpring(0, {
-        damping: 20,
-        stiffness: 100,
-      });
-    },
-  });
+          // 스와이프 거리나 속도가 임계값을 넘으면 인덱스 변경
+          if (
+            Math.abs(event.translationY) > threshold ||
+            Math.abs(velocity) > 500
+          ) {
+            if (event.translationY > 0 && currentIdx > 0) {
+              // 아래로 스와이프 - 이전 카드
+              newIndex = currentIdx - 1;
+            } else if (
+              event.translationY < 0 &&
+              currentIdx < dDayCards.length - 1
+            ) {
+              // 위로 스와이프 - 다음 카드
+              newIndex = currentIdx + 1;
+            }
+          }
+
+          // 인덱스 변경 애니메이션
+          currentIndex.value = withSpring(newIndex, {
+            damping: 20,
+            stiffness: 100,
+          });
+
+          // translateY를 0으로 리셋
+          translateY.value = withSpring(0, {
+            damping: 20,
+            stiffness: 100,
+          });
+
+          // JS 스레드에서 상태 업데이트
+          if (newIndex !== currentIdx) {
+            runOnJS(updateIndex)(newIndex);
+          }
+        }),
+    [dDayCards.length]
+  );
 
   // 각 카드의 애니메이션 스타일 (컴포넌트 최상위에서 호출)
   const card0Style = useAnimatedStyle(() => {
-    const cardHeight = 78;
     const offset = 0 - currentIndex.value;
-    const baseTranslateY = offset * cardHeight;
+    const baseTranslateY = offset * (CARD_HEIGHT + CARD_SPACING);
     const swipeOffset = translateY.value;
     const totalOffset = baseTranslateY + swipeOffset;
-    // 현재 카드이거나 스와이프 중에만 보이도록
-    const isCurrentCard = offset === 0;
-    const isSwipeActive = Math.abs(swipeOffset) > 5;
-    const isNextCard = offset === -1 && swipeOffset < 0;
-    const isPrevCard = offset === 1 && swipeOffset > 0;
-    const shouldShow =
-      isCurrentCard || (isSwipeActive && (isNextCard || isPrevCard));
-    const opacity = shouldShow ? 1 : 0;
+    const distance = Math.abs(offset);
+    const opacity = distance <= 1 ? 1 : 0;
+    const scale = interpolate(
+      distance,
+      [0, 1, 2],
+      [1, 0.95, 0.9],
+      Extrapolate.CLAMP
+    );
     return {
       opacity,
-      transform: [{ translateY: totalOffset }],
-      zIndex: dDayCards.length - Math.abs(offset),
+      transform: [{ translateY: totalOffset }, { scale }],
     };
   });
 
   const card1Style = useAnimatedStyle(() => {
-    const cardHeight = 78;
     const offset = 1 - currentIndex.value;
-    const baseTranslateY = offset * cardHeight;
+    const baseTranslateY = offset * (CARD_HEIGHT + CARD_SPACING);
     const swipeOffset = translateY.value;
     const totalOffset = baseTranslateY + swipeOffset;
-    const isCurrentCard = offset === 0;
-    const isSwipeActive = Math.abs(swipeOffset) > 5;
-    const isNextCard = offset === -1 && swipeOffset < 0;
-    const isPrevCard = offset === 1 && swipeOffset > 0;
-    const shouldShow =
-      isCurrentCard || (isSwipeActive && (isNextCard || isPrevCard));
-    const opacity = shouldShow ? 1 : 0;
+    const distance = Math.abs(offset);
+    const opacity = distance <= 1 ? 1 : 0;
+    const scale = interpolate(
+      distance,
+      [0, 1, 2],
+      [1, 0.95, 0.9],
+      Extrapolate.CLAMP
+    );
     return {
       opacity,
-      transform: [{ translateY: totalOffset }],
-      zIndex: dDayCards.length - Math.abs(offset),
+      transform: [{ translateY: totalOffset }, { scale }],
     };
   });
 
   const card2Style = useAnimatedStyle(() => {
-    const cardHeight = 78;
     const offset = 2 - currentIndex.value;
-    const baseTranslateY = offset * cardHeight;
+    const baseTranslateY = offset * (CARD_HEIGHT + CARD_SPACING);
     const swipeOffset = translateY.value;
     const totalOffset = baseTranslateY + swipeOffset;
-    const isCurrentCard = offset === 0;
-    const isSwipeActive = Math.abs(swipeOffset) > 5;
-    const isNextCard = offset === -1 && swipeOffset < 0;
-    const isPrevCard = offset === 1 && swipeOffset > 0;
-    const shouldShow =
-      isCurrentCard || (isSwipeActive && (isNextCard || isPrevCard));
-    const opacity = shouldShow ? 1 : 0;
+    const distance = Math.abs(offset);
+    const opacity = distance <= 1 ? 1 : 0;
+    const scale = interpolate(
+      distance,
+      [0, 1, 2],
+      [1, 0.95, 0.9],
+      Extrapolate.CLAMP
+    );
     return {
       opacity,
-      transform: [{ translateY: totalOffset }],
-      zIndex: dDayCards.length - Math.abs(offset),
+      transform: [{ translateY: totalOffset }, { scale }],
     };
   });
 
   const card3Style = useAnimatedStyle(() => {
-    const cardHeight = 78;
     const offset = 3 - currentIndex.value;
-    const baseTranslateY = offset * cardHeight;
+    const baseTranslateY = offset * (CARD_HEIGHT + CARD_SPACING);
     const swipeOffset = translateY.value;
     const totalOffset = baseTranslateY + swipeOffset;
-    const isCurrentCard = offset === 0;
-    const isSwipeActive = Math.abs(swipeOffset) > 5;
-    const isNextCard = offset === -1 && swipeOffset < 0;
-    const isPrevCard = offset === 1 && swipeOffset > 0;
-    const shouldShow =
-      isCurrentCard || (isSwipeActive && (isNextCard || isPrevCard));
-    const opacity = shouldShow ? 1 : 0;
+    const distance = Math.abs(offset);
+    const opacity = distance <= 1 ? 1 : 0;
+    const scale = interpolate(
+      distance,
+      [0, 1, 2],
+      [1, 0.95, 0.9],
+      Extrapolate.CLAMP
+    );
     return {
       opacity,
-      transform: [{ translateY: totalOffset }],
-      zIndex: dDayCards.length - Math.abs(offset),
+      transform: [{ translateY: totalOffset }, { scale }],
     };
   });
 
   const card4Style = useAnimatedStyle(() => {
-    const cardHeight = 78;
     const offset = 4 - currentIndex.value;
-    const baseTranslateY = offset * cardHeight;
+    const baseTranslateY = offset * (CARD_HEIGHT + CARD_SPACING);
     const swipeOffset = translateY.value;
     const totalOffset = baseTranslateY + swipeOffset;
-    const isCurrentCard = offset === 0;
-    const isSwipeActive = Math.abs(swipeOffset) > 5;
-    const isNextCard = offset === -1 && swipeOffset < 0;
-    const isPrevCard = offset === 1 && swipeOffset > 0;
-    const shouldShow =
-      isCurrentCard || (isSwipeActive && (isNextCard || isPrevCard));
-    const opacity = shouldShow ? 1 : 0;
+    const distance = Math.abs(offset);
+    const opacity = distance <= 1 ? 1 : 0;
+    const scale = interpolate(
+      distance,
+      [0, 1, 2],
+      [1, 0.95, 0.9],
+      Extrapolate.CLAMP
+    );
     return {
       opacity,
-      transform: [{ translateY: totalOffset }],
-      zIndex: dDayCards.length - Math.abs(offset),
+      transform: [{ translateY: totalOffset }, { scale }],
     };
   });
 
@@ -309,23 +315,22 @@ export default function Index() {
           />
           <View style={styles.heroOverlay} />
           <View style={styles.heroContent}>
-            <View
-              style={styles.dDayStackContainer}
-              {...panResponder.panHandlers}
-            >
-              <View style={styles.dDayStackWrapper}>
-                {dDayCards.map((card, index) => (
-                  <Animated.View
-                    key={card.id}
-                    style={[styles.dDayCardWrapper, cardStyles[index]]}
-                  >
-                    <View style={styles.counterCard}>
-                      <Text style={styles.counterNumber}>D+{card.days}</Text>
-                      <Text style={styles.counterLabel}>{card.label}</Text>
-                    </View>
-                  </Animated.View>
-                ))}
-              </View>
+            <GestureHandlerRootView style={styles.dDayStackContainer}>
+              <GestureDetector gesture={panGesture}>
+                <View style={styles.dDayStackWrapper}>
+                  {dDayCards.map((card, index) => (
+                    <Animated.View
+                      key={card.id}
+                      style={[styles.dDayCardWrapper, cardStyles[index]]}
+                    >
+                      <View style={styles.counterCard}>
+                        <Text style={styles.counterNumber}>D+{card.days}</Text>
+                        <Text style={styles.counterLabel}>{card.label}</Text>
+                      </View>
+                    </Animated.View>
+                  ))}
+                </View>
+              </GestureDetector>
               <View style={styles.stackWidgetContainer}>
                 <View style={styles.stackWidget}>
                   <Image
@@ -346,7 +351,7 @@ export default function Index() {
                   ))}
                 </View>
               </View>
-            </View>
+            </GestureHandlerRootView>
           </View>
         </View>
 
@@ -506,7 +511,7 @@ const styles = StyleSheet.create({
     position: "relative",
     minWidth: 142,
     height: 78,
-    overflow: "visible",
+    overflow: "hidden",
   },
   dDayCardWrapper: {
     position: "absolute",
@@ -514,6 +519,7 @@ const styles = StyleSheet.create({
     height: 78,
     left: 0,
     top: 0,
+    width: "100%",
   },
   counterCard: {
     backgroundColor: "rgba(119, 119, 119, 0.5)",

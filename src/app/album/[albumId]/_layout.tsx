@@ -8,7 +8,12 @@ import type {
   ParamListBase,
   TabNavigationState,
 } from "@react-navigation/native";
-import { router, useLocalSearchParams, withLayoutContext } from "expo-router";
+import {
+  router,
+  useLocalSearchParams,
+  usePathname,
+  withLayoutContext,
+} from "expo-router";
 import {
   StyleSheet,
   Text,
@@ -128,6 +133,18 @@ export default function AlbumDetailLayout() {
   const insets = useSafeAreaInsets();
   const { albumId } = useLocalSearchParams();
   const album = albums[albumId as string];
+  const pathname = usePathname();
+
+  // 현재 활성 탭 확인
+  const isTimelineActive = pathname?.includes("/map") === false;
+
+  const handleTabPress = (tabName: "timeline" | "map") => {
+    if (tabName === "timeline" && !isTimelineActive) {
+      router.replace(`/album/${albumId}`);
+    } else if (tabName === "map" && isTimelineActive) {
+      router.replace(`/album/${albumId}/map`);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -154,12 +171,31 @@ export default function AlbumDetailLayout() {
       {/* 탭바 */}
       <View style={styles.tabBarContainer}>
         <View style={styles.tabBar}>
-          <View style={[styles.tab, styles.tabActive]}>
-            <Text style={styles.tabTextActive}>타임라인</Text>
-          </View>
-          <View style={styles.tab}>
-            <Text style={styles.tabText}>지도</Text>
-          </View>
+          <TouchableOpacity
+            style={[styles.tab, isTimelineActive && styles.tabActive]}
+            onPress={() => handleTabPress("timeline")}
+            activeOpacity={0.7}
+          >
+            <Text
+              style={[styles.tabText, isTimelineActive && styles.tabTextActive]}
+            >
+              타임라인
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tab, !isTimelineActive && styles.tabActive]}
+            onPress={() => handleTabPress("map")}
+            activeOpacity={0.7}
+          >
+            <Text
+              style={[
+                styles.tabText,
+                !isTimelineActive && styles.tabTextActive,
+              ]}
+            >
+              지도
+            </Text>
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -214,33 +250,50 @@ const styles = StyleSheet.create({
   },
   tabBarContainer: {
     backgroundColor: "#FAF9FA",
-    borderBottomWidth: 1,
-    borderBottomColor: "#E8E3E0",
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 12,
   },
   tabBar: {
     flexDirection: "row",
-    height: 48,
+    height: 40,
+    backgroundColor: "#F5F0EB",
+    borderRadius: 12,
+    padding: 3,
+    gap: 0,
   },
   tab: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#FFFFFF",
+    borderRadius: 9,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    backgroundColor: "transparent",
+    minHeight: 34,
   },
   tabActive: {
-    backgroundColor: "#FAF9FA",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 9,
+    shadowColor: "rgba(0, 0, 0, 0.05)",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 1,
+    shadowRadius: 2,
+    elevation: 1,
   },
   tabText: {
     fontSize: 14,
     fontWeight: "400",
-    color: "#6F5B52",
+    color: "#A0A0A0",
     letterSpacing: -0.28,
+    lineHeight: 20,
   },
   tabTextActive: {
     fontSize: 14,
     fontWeight: "600",
     color: "#31170F",
     letterSpacing: -0.28,
+    lineHeight: 20,
   },
   tabsContainer: {
     flex: 1,
