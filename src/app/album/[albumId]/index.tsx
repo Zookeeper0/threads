@@ -1,6 +1,6 @@
 import Toast from "@/components/Toast";
 import { Ionicons } from "@expo/vector-icons";
-import { useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import {
   StyleSheet,
   Text,
@@ -166,7 +166,7 @@ export default function AlbumTimeline() {
             <TouchableOpacity
               style={styles.addPlaceButton}
               onPress={() => {
-                // TODO: 장소 추가 기능 구현
+                router.push("/add-location");
               }}
             >
               <Ionicons name="add" size={20} color="#FFFFFF" />

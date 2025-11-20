@@ -1,10 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
+import { router } from "expo-router";
 import { useContext, useEffect, useMemo, useState } from "react";
 import {
   ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
   useColorScheme,
 } from "react-native";
@@ -21,10 +23,7 @@ import Animated, {
   useSharedValue,
   withSpring,
 } from "react-native-reanimated";
-import {
-  SafeAreaView,
-  useSafeAreaInsets,
-} from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AuthContext } from "../_layout";
 
 // 임시 이미지 URL (실제로는 Figma에서 받은 이미지 URL을 사용하거나 로컬 에셋 사용)
@@ -294,7 +293,7 @@ export default function Index() {
   ];
 
   return (
-    <SafeAreaView
+    <View
       style={[
         styles.container,
         { paddingTop: 0, paddingBottom: insets.bottom },
@@ -314,6 +313,14 @@ export default function Index() {
             contentFit="cover"
           />
           <View style={styles.heroOverlay} />
+          {/* 설정 아이콘 */}
+          <TouchableOpacity
+            style={[styles.settingsButton, { top: insets.top + 16 }]}
+            onPress={() => router.push("/settings")}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="settings-outline" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
           <View style={styles.heroContent}>
             <GestureHandlerRootView style={styles.dDayStackContainer}>
               <GestureDetector gesture={panGesture}>
@@ -447,7 +454,7 @@ export default function Index() {
           </View> */}
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -484,6 +491,17 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     backgroundColor: "transparent",
+  },
+  settingsButton: {
+    position: "absolute",
+    right: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(0, 0, 0, 0.3)",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 10,
   },
   heroContent: {
     position: "absolute",

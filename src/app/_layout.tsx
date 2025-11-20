@@ -2,8 +2,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { router, Stack } from "expo-router";
 import * as SecureStore from "expo-secure-store";
-import { Appearance } from "react-native";
 import { createContext, useEffect, useState } from "react";
+import { Appearance } from "react-native";
 
 const COLOR_SCHEME_KEY = "@app:colorScheme";
 
@@ -167,6 +167,8 @@ export default function RootLayout() {
           {/* 모달 페이지는 스택 레이아웃에 포함되지 않음 
         모달 표현 방식으로 모달을 띄우게 부모 레이아웃에서 띄우게 함*/}
           <Stack.Screen name="modal" options={{ presentation: "modal" }} />
+          <Stack.Screen name="settings" />
+          <Stack.Screen name="auth" />
         </Stack>
       </AuthContext.Provider>
     </QueryClientProvider>
