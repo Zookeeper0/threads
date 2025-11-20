@@ -1,4 +1,5 @@
 import { Image } from "expo-image";
+import { router } from "expo-router";
 import { useState } from "react";
 import {
   ScrollView,
@@ -9,6 +10,7 @@ import {
   useColorScheme,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+const imgPlus = require("../../../assets/svg/plus.svg");
 
 // Figma에서 가져온 이미지 URL
 const imgAlbumCover =
@@ -31,8 +33,6 @@ const imgChevronDown =
   "http://localhost:3845/assets/f6be0256a2e32d04a042365428f853cd752022e7.svg";
 const imgCalendar =
   "http://localhost:3845/assets/eb918f77a07558ddba35b11a9823509d3d59b4fb.svg";
-const imgPlus =
-  "http://localhost:3845/assets/48f85a95a20f763a8bb4bf64c589686832ffec89.svg";
 
 interface Album {
   id: string;
@@ -92,12 +92,67 @@ const albums: Album[] = [
     profiles: [img9, img10],
     position: "top-right",
   },
+  {
+    id: "7",
+    title: "여름 바다",
+    description: "수달 님이 앨범을 생성했어요.",
+    coverImage: imgAlbumCover,
+    profiles: [img9, img10],
+    position: "bottom-left",
+  },
+  {
+    id: "8",
+    title: "강릉 여행",
+    description: "해달 님이 장소를 추가했어요.",
+    coverImage: imgAlbumCover1,
+    profiles: [img10],
+    position: "top-right",
+  },
+  {
+    id: "9",
+    title: "산 정상 정복",
+    description: "수달 님이 앨범에 캡션을 남겼어요.",
+    coverImage: imgAlbumCover2,
+    profiles: [img9, img10],
+    position: "top-right",
+  },
+  {
+    id: "10",
+    title: "카페 투어",
+    description: "해달 님이 장소를 추가했어요.",
+    coverImage: imgAlbumCover3,
+    profiles: [img9, img10],
+    position: "top-right",
+  },
+  {
+    id: "11",
+    title: "야경 산책",
+    description: "수달 님이 앨범에 캡션을 남겼어요.",
+    coverImage: imgAlbumCover4,
+    profiles: [img9, img10],
+    position: "top-right",
+  },
+  {
+    id: "12",
+    title: "디저트 맛집 탐방",
+    description: "수달 님이 앨범에 캡션을 남겼어요.",
+    coverImage: imgAlbumCover5,
+    profiles: [img9, img10],
+    position: "top-right",
+  },
 ];
 
 export default function AlbumView() {
   const colorScheme = useColorScheme();
   const insets = useSafeAreaInsets();
   const [sortOrder, setSortOrder] = useState("최신순");
+
+  const handleAddAlbumPress = () => {
+    router.push("/album-add");
+  };
+
+  // 탭바 높이(64) + 여유 공간(20) + safe area bottom을 고려한 버튼 위치
+  const addButtonBottom = 64 + 50 + Math.max(insets.bottom - 20, 0);
 
   return (
     <View
@@ -193,12 +248,11 @@ export default function AlbumView() {
       </ScrollView>
 
       {/* 플로팅 추가 버튼 */}
-      <TouchableOpacity style={styles.addButton}>
-        <Image
-          source={{ uri: imgPlus }}
-          style={styles.addIcon}
-          contentFit="contain"
-        />
+      <TouchableOpacity
+        style={[styles.addButton, { bottom: addButtonBottom }]}
+        onPress={handleAddAlbumPress}
+      >
+        <Image source={imgPlus} style={styles.addIcon} contentFit="contain" />
       </TouchableOpacity>
     </View>
   );
@@ -344,7 +398,7 @@ const styles = StyleSheet.create({
   addButton: {
     position: "absolute",
     right: 16,
-    bottom: 32,
+    bottom: 250,
     width: 48,
     height: 48,
     borderRadius: 24,
@@ -362,4 +416,3 @@ const styles = StyleSheet.create({
     height: 24,
   },
 });
-

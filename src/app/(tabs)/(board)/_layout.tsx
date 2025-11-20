@@ -1,6 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Slot, router, usePathname, useSegments } from "expo-router";
-import { useEffect } from "react";
 import {
   StyleSheet,
   Text,
@@ -16,22 +15,7 @@ export default function TabLayout() {
   const pathname = usePathname();
   const segments = useSegments();
 
-  // 기본 경로일 때 앨범 화면으로 리다이렉트
-  useEffect(() => {
-    // (board)의 기본 경로(index.tsx)일 때 앨범으로 리다이렉트
-    const isBoardRoot =
-      pathname === "/(tabs)/(board)" ||
-      pathname === "/(tabs)/(board)/" ||
-      (pathname?.includes("(board)") &&
-        !pathname?.includes("/album") &&
-        !pathname?.includes("/index") &&
-        segments[segments.length - 1] !== "album");
-
-    if (isBoardRoot) {
-      router.replace("/(tabs)/(board)/album");
-    }
-  }, [pathname, segments]);
-
+  // 기본 경로일 때 지도 화면으로 유지 (리다이렉트 안 함)
   // 현재 경로에 따라 지도/앨범 뷰 판단
   const isMapView = pathname?.includes("/album") === false;
 
@@ -63,18 +47,6 @@ export default function TabLayout() {
         </TouchableOpacity>
         <View style={styles.tabSwitcher}>
           <TouchableOpacity
-            style={[styles.tabItem, !isMapView && styles.tabItemActive]}
-            onPress={() => {
-              if (pathname?.includes("/album") === false) {
-                router.replace("/(tabs)/(board)/album");
-              }
-            }}
-          >
-            <Text style={[styles.tabText, !isMapView && styles.tabTextActive]}>
-              앨범
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
             style={[styles.tabItem, isMapView && styles.tabItemActive]}
             onPress={() => {
               if (pathname?.includes("/album")) {
@@ -84,6 +56,18 @@ export default function TabLayout() {
           >
             <Text style={[styles.tabText, isMapView && styles.tabTextActive]}>
               지도
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tabItem, !isMapView && styles.tabItemActive]}
+            onPress={() => {
+              if (pathname?.includes("/album") === false) {
+                router.replace("/(tabs)/(board)/album");
+              }
+            }}
+          >
+            <Text style={[styles.tabText, !isMapView && styles.tabTextActive]}>
+              앨범
             </Text>
           </TouchableOpacity>
         </View>

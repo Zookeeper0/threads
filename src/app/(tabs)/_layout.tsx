@@ -97,27 +97,24 @@ export default function TabLayout() {
   console.log("segments", segments);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
-  // 메모리보드 화면일 때 탭바 숨기기
-  // segments를 사용하여 더 정확하게 감지
-  const isBoardScreen =
-    pathname?.includes("(board)") ||
-    pathname?.includes("/board") ||
-    segments.some(
+  // 지도 화면일 때만 탭바 숨기기 (앨범 화면에서는 표시)
+  const isMapView =
+    (pathname?.includes("(board)") && !pathname?.includes("/album")) ||
+    (segments.some(
       (segment: string) => segment === "(board)" || segment === "board"
-    );
-  const translateY = useSharedValue(isBoardScreen ? 200 : 0);
+    ) &&
+      !pathname?.includes("/album"));
+  const translateY = useSharedValue(isMapView ? 200 : 0);
 
   // 탭바 translateY 값을 일반 숫자로 변환 (애니메이션 적용을 위해)
-  const [tabBarTranslateY, setTabBarTranslateY] = useState(
-    isBoardScreen ? 200 : 0
-  );
-  const [tabBarOpacity, setTabBarOpacity] = useState(isBoardScreen ? 0 : 1);
+  const [tabBarTranslateY, setTabBarTranslateY] = useState(isMapView ? 200 : 0);
+  const [tabBarOpacity, setTabBarOpacity] = useState(isMapView ? 0 : 1);
 
   // 탭바 애니메이션
   useEffect(() => {
     // 아래에서 위로 올라오도록 음수에서 0으로
-    const targetY = isBoardScreen ? -300 : 0;
-    const targetOpacity = isBoardScreen ? 0 : 1;
+    const targetY = isMapView ? -300 : 0;
+    const targetOpacity = isMapView ? 0 : 1;
 
     translateY.value = withTiming(targetY, {
       duration: 300,
@@ -140,7 +137,7 @@ export default function TabLayout() {
     }, 16);
 
     return () => clearInterval(interval);
-  }, [isBoardScreen, translateY]);
+  }, [isMapView, translateY]);
 
   // 앱 시작 시 홈 화면으로 이동 (한 번만 실행)
   useEffect(() => {
@@ -167,7 +164,7 @@ export default function TabLayout() {
 
   // 안드로이드 네비게이션 바에 따른 탭바 위치 계산
   const getTabBarMarginBottom = () => {
-    if (isBoardScreen) return -300;
+    if (isMapView) return -300;
 
     // 기본 marginBottom
     const baseMarginBottom = 18;
@@ -191,7 +188,7 @@ export default function TabLayout() {
 
   // 탭바 중앙 정렬을 위한 left 값 계산
   const getTabBarLeft = () => {
-    if (isBoardScreen) return 0;
+    if (isMapView) return 0;
     const screenWidth = Dimensions.get("window").width;
     const tabBarWidth = 330;
     return (screenWidth - tabBarWidth) / 2;
@@ -207,32 +204,32 @@ export default function TabLayout() {
           tabBarStyle: [
             styles.tabBar,
             {
-              backgroundColor: isBoardScreen ? "transparent" : "#FFFCF8",
+              backgroundColor: isMapView ? "transparent" : "#FFFCF8",
               borderTopWidth: 0,
-              elevation: isBoardScreen ? 0 : 20,
+              elevation: isMapView ? 0 : 20,
               shadowColor: "#E8E8E8",
               shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: isBoardScreen ? 0 : 1,
+              shadowOpacity: isMapView ? 0 : 1,
               shadowRadius: 20,
-              height: isBoardScreen ? 0 : 64,
-              paddingBottom: isBoardScreen ? 0 : 9,
-              paddingTop: isBoardScreen ? 0 : 9,
-              paddingLeft: isBoardScreen ? 0 : 14,
+              height: isMapView ? 0 : 64,
+              paddingBottom: isMapView ? 0 : 9,
+              paddingTop: isMapView ? 0 : 9,
+              paddingLeft: isMapView ? 0 : 14,
               borderRadius: 9999,
               marginBottom: getTabBarMarginBottom(),
-              width: isBoardScreen ? 0 : 330,
+              width: isMapView ? 0 : 330,
               position: "absolute",
               left: 0,
               right: 0,
-              bottom: isBoardScreen ? -300 : tabBarTranslateY,
-              opacity: isBoardScreen ? 0 : tabBarOpacity,
+              bottom: isMapView ? -300 : tabBarTranslateY,
+              opacity: isMapView ? 0 : tabBarOpacity,
               overflow: "hidden",
-              pointerEvents: isBoardScreen ? "none" : "auto",
-              zIndex: isBoardScreen ? -999 : 1,
-              gap: isBoardScreen ? 0 : 20,
+              pointerEvents: isMapView ? "none" : "auto",
+              zIndex: isMapView ? -999 : 1,
+              gap: isMapView ? 0 : 20,
               justifyContent: "space-between",
               alignSelf: "center" as const,
-              marginHorizontal: isBoardScreen
+              marginHorizontal: isMapView
                 ? 0
                 : (Dimensions.get("window").width - 330) / 2,
               boxShadow: "0px 4px 20px #e8e8e8",
@@ -282,7 +279,7 @@ export default function TabLayout() {
           listeners={{
             tabPress: (e) => {
               e.preventDefault();
-              router.push("/(tabs)/(board)/album");
+              router.push("/(tabs)/(board)");
             },
           }}
           options={{
