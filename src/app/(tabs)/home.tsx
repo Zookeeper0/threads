@@ -1,8 +1,14 @@
+import Card from "@/components/Card/StackCards";
+import data from "@/components/Card/data";
+import { recentMemories } from "@/lib/data/dummy";
 import { Ionicons } from "@expo/vector-icons";
+import Constants from "expo-constants";
 import { Image } from "expo-image";
 import { router } from "expo-router";
-import { useContext, useEffect, useMemo, useState } from "react";
+import { StatusBar } from "expo-status-bar";
+import { useContext } from "react";
 import {
+  Dimensions,
   ScrollView,
   StyleSheet,
   Text,
@@ -11,18 +17,12 @@ import {
   useColorScheme,
 } from "react-native";
 import {
+  Directions,
   Gesture,
   GestureDetector,
   GestureHandlerRootView,
 } from "react-native-gesture-handler";
-import Animated, {
-  Extrapolate,
-  interpolate,
-  runOnJS,
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-} from "react-native-reanimated";
+import { useSharedValue, withTiming } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AuthContext } from "../_layout";
 
@@ -32,266 +32,92 @@ const HERO_IMAGE =
 const MAP_IMAGE =
   "https://images.unsplash.com/photo-1524661135-423995f22d0b?w=400&h=200&fit=crop";
 
-interface RecentMemory {
-  id: string;
-  title: string;
-  date: string;
-  imageUrl: string;
-}
+const colors = {
+  primary: "#6667AB",
+  light: "#fff",
+  dark: "#111",
+};
 
 interface DDayCard {
   id: string;
   days: number;
   label: string;
 }
+const { width } = Dimensions.get("window");
+
+const duration = 600;
+const _size = width * 0.9;
+const layout = {
+  borderRadius: 16,
+  width: _size,
+  height: _size * 1.27,
+  spacing: 12,
+  cardsGap: 22,
+};
+const maxVisibleItems = 6;
 
 const STACK_WIDGET_IMAGE =
   "http://localhost:3845/assets/69a05a5956c4c2cf24efac82f095dc013d5e1871.svg";
 
 export default function Index() {
+  /** ============================= state 영역 ============================= */
   const insets = useSafeAreaInsets();
   const { user } = useContext(AuthContext);
   const colorScheme = useColorScheme();
-  const [currentDDayIndex, setCurrentDDayIndex] = useState(0);
-  const translateY = useSharedValue(0);
-  const currentIndex = useSharedValue(0);
-  const CARD_HEIGHT = 78;
-  const CARD_SPACING = 2;
 
-  const dDayCards: DDayCard[] = [
-    {
-      id: "1",
-      days: 1234,
-      label: "우리가 함께한 시간",
-    },
-    {
-      id: "2",
-      days: 1000,
-      label: "첫 만남부터",
-    },
-    {
-      id: "3",
-      days: 500,
-      label: "데이트 시작",
-    },
-    {
-      id: "4",
-      days: 365,
-      label: "1주년",
-    },
-    {
-      id: "5",
-      days: 100,
-      label: "최근 기념일",
-    },
-  ];
+  const activeIndex = useSharedValue(0);
+  /** ============================= API 영역 ============================= */
 
-  const recentMemories: RecentMemory[] = [
-    {
-      id: "1",
-      title: "슈퍼 잼민이",
-      date: "3일 전",
-      imageUrl:
-        "http://localhost:3845/assets/9b8974a5e686ef8741ef4f404e037c71632b80a3.png",
-    },
-    {
-      id: "2",
-      title: "해달 생일 🎂",
-      date: "3일 전",
-      imageUrl:
-        "http://localhost:3845/assets/82db08c3a962ddb03457b9f6dcc8c17bb49699fe.png",
-    },
-    {
-      id: "3",
-      title: "청도 글램핑",
-      date: "2주 전",
-      imageUrl:
-        "http://localhost:3845/assets/e4b7d81d22483211645f93f117300e35f95858ce.png",
-    },
-    {
-      id: "4",
-      title: "한강 산책면",
-      date: "한달전",
-      imageUrl:
-        "http://localhost:3845/assets/73b38b2f9233fe14405af7d470c20bf9e76485a6.png",
-    },
-  ];
+  /** ============================= 비즈니스 로직 영역 ============================= */
 
-  // 인덱스 변경 함수
-  const updateIndex = (newIndex: number) => {
-    if (newIndex !== currentDDayIndex) {
-      setCurrentDDayIndex(newIndex);
-    }
-  };
+  const flingUp = Gesture.Fling()
+    .direction(Directions.UP)
+    .onStart(() => {
+      if (activeIndex.value === 0) {
+        return;
+      }
 
-  // currentIndex를 currentDDayIndex와 동기화
-  useEffect(() => {
-    currentIndex.value = currentDDayIndex;
-  }, [currentDDayIndex, currentIndex]);
+      activeIndex.value = withTiming(activeIndex.value - 1, { duration });
+    });
 
-  // 제스처 핸들러
-  const panGesture = useMemo(
-    () =>
-      Gesture.Pan()
-        .activeOffsetY([-10, 10]) // 세로 스와이프만 활성화
-        .failOffsetX([-30, 30]) // 가로 스와이프는 무시 (ScrollView가 처리)
-        .onStart(() => {
-          // 제스처 시작 시 현재 인덱스를 shared value에 동기화
-          translateY.value = 0;
-        })
-        .onUpdate((event) => {
-          // 세로 스와이프만 처리
-          translateY.value = event.translationY;
-        })
-        .onEnd((event) => {
-          const threshold = 30;
-          const velocity = event.velocityY;
+  const flingDown = Gesture.Fling()
+    .direction(Directions.DOWN)
+    .onStart(() => {
+      if (activeIndex.value === data.length) {
+        return;
+      }
 
-          // 현재 인덱스를 shared value에서 가져옴
-          const currentIdx = Math.round(currentIndex.value);
-          let newIndex = currentIdx;
+      activeIndex.value = withTiming(activeIndex.value + 1, { duration });
+    });
 
-          // 스와이프 거리나 속도가 임계값을 넘으면 인덱스 변경
-          if (
-            Math.abs(event.translationY) > threshold ||
-            Math.abs(velocity) > 500
-          ) {
-            if (event.translationY > 0 && currentIdx > 0) {
-              // 아래로 스와이프 - 이전 카드
-              newIndex = currentIdx - 1;
-            } else if (
-              event.translationY < 0 &&
-              currentIdx < dDayCards.length - 1
-            ) {
-              // 위로 스와이프 - 다음 카드
-              newIndex = currentIdx + 1;
-            }
-          }
+  // 디버깅용: 터치 감지 확인
+  const tapGesture = Gesture.Tap()
+    .onStart(() => {
+      console.log("✅ Tap 감지됨 - 제스처 영역 내 터치 확인!");
+    })
+    .onEnd(() => {
+      console.log("✅ Tap 종료");
+    });
 
-          // 인덱스 변경 애니메이션
-          currentIndex.value = withSpring(newIndex, {
-            damping: 20,
-            stiffness: 100,
-          });
+  const panGesture = Gesture.Pan()
+    .onStart(() => {
+      console.log("✅ Pan started - 드래그 시작 감지!");
+      if (activeIndex.value === 0) {
+        return;
+      }
 
-          // translateY를 0으로 리셋
-          translateY.value = withSpring(0, {
-            damping: 20,
-            stiffness: 100,
-          });
+      activeIndex.value = withTiming(activeIndex.value - 1, { duration });
+    })
+    .onUpdate((e) => {
+      console.log(`✅ Pan update - Y 이동: ${e.translationY.toFixed(2)}`);
+    })
+    .onEnd(() => {
+      console.log("✅ Pan ended - 드래그 종료");
+    });
 
-          // JS 스레드에서 상태 업데이트
-          if (newIndex !== currentIdx) {
-            runOnJS(updateIndex)(newIndex);
-          }
-        }),
-    [dDayCards.length]
-  );
+  /** ============================= 컴포넌트 영역 ============================= */
 
-  // 각 카드의 애니메이션 스타일 (컴포넌트 최상위에서 호출)
-  const card0Style = useAnimatedStyle(() => {
-    const offset = 0 - currentIndex.value;
-    const baseTranslateY = offset * (CARD_HEIGHT + CARD_SPACING);
-    const swipeOffset = translateY.value;
-    const totalOffset = baseTranslateY + swipeOffset;
-    const distance = Math.abs(offset);
-    const opacity = distance <= 1 ? 1 : 0;
-    const scale = interpolate(
-      distance,
-      [0, 1, 2],
-      [1, 0.95, 0.9],
-      Extrapolate.CLAMP
-    );
-    return {
-      opacity,
-      transform: [{ translateY: totalOffset }, { scale }],
-    };
-  });
-
-  const card1Style = useAnimatedStyle(() => {
-    const offset = 1 - currentIndex.value;
-    const baseTranslateY = offset * (CARD_HEIGHT + CARD_SPACING);
-    const swipeOffset = translateY.value;
-    const totalOffset = baseTranslateY + swipeOffset;
-    const distance = Math.abs(offset);
-    const opacity = distance <= 1 ? 1 : 0;
-    const scale = interpolate(
-      distance,
-      [0, 1, 2],
-      [1, 0.95, 0.9],
-      Extrapolate.CLAMP
-    );
-    return {
-      opacity,
-      transform: [{ translateY: totalOffset }, { scale }],
-    };
-  });
-
-  const card2Style = useAnimatedStyle(() => {
-    const offset = 2 - currentIndex.value;
-    const baseTranslateY = offset * (CARD_HEIGHT + CARD_SPACING);
-    const swipeOffset = translateY.value;
-    const totalOffset = baseTranslateY + swipeOffset;
-    const distance = Math.abs(offset);
-    const opacity = distance <= 1 ? 1 : 0;
-    const scale = interpolate(
-      distance,
-      [0, 1, 2],
-      [1, 0.95, 0.9],
-      Extrapolate.CLAMP
-    );
-    return {
-      opacity,
-      transform: [{ translateY: totalOffset }, { scale }],
-    };
-  });
-
-  const card3Style = useAnimatedStyle(() => {
-    const offset = 3 - currentIndex.value;
-    const baseTranslateY = offset * (CARD_HEIGHT + CARD_SPACING);
-    const swipeOffset = translateY.value;
-    const totalOffset = baseTranslateY + swipeOffset;
-    const distance = Math.abs(offset);
-    const opacity = distance <= 1 ? 1 : 0;
-    const scale = interpolate(
-      distance,
-      [0, 1, 2],
-      [1, 0.95, 0.9],
-      Extrapolate.CLAMP
-    );
-    return {
-      opacity,
-      transform: [{ translateY: totalOffset }, { scale }],
-    };
-  });
-
-  const card4Style = useAnimatedStyle(() => {
-    const offset = 4 - currentIndex.value;
-    const baseTranslateY = offset * (CARD_HEIGHT + CARD_SPACING);
-    const swipeOffset = translateY.value;
-    const totalOffset = baseTranslateY + swipeOffset;
-    const distance = Math.abs(offset);
-    const opacity = distance <= 1 ? 1 : 0;
-    const scale = interpolate(
-      distance,
-      [0, 1, 2],
-      [1, 0.95, 0.9],
-      Extrapolate.CLAMP
-    );
-    return {
-      opacity,
-      transform: [{ translateY: totalOffset }, { scale }],
-    };
-  });
-
-  const cardStyles = [
-    card0Style,
-    card1Style,
-    card2Style,
-    card3Style,
-    card4Style,
-  ];
-
+  /** ============================= useEffect 영역 ============================= */
   return (
     <View
       style={[
@@ -321,45 +147,49 @@ export default function Index() {
           >
             <Ionicons name="settings-outline" size={24} color="#FFFFFF" />
           </TouchableOpacity>
-          <View style={styles.heroContent}>
-            <GestureHandlerRootView style={styles.dDayStackContainer}>
-              <GestureDetector gesture={panGesture}>
-                <View style={styles.dDayStackWrapper}>
-                  {dDayCards.map((card, index) => (
-                    <Animated.View
-                      key={card.id}
-                      style={[styles.dDayCardWrapper, cardStyles[index]]}
-                    >
-                      <View style={styles.counterCard}>
-                        <Text style={styles.counterNumber}>D+{card.days}</Text>
-                        <Text style={styles.counterLabel}>{card.label}</Text>
-                      </View>
-                    </Animated.View>
-                  ))}
-                </View>
-              </GestureDetector>
-              <View style={styles.stackWidgetContainer}>
-                <View style={styles.stackWidget}>
-                  <Image
-                    source={{ uri: STACK_WIDGET_IMAGE }}
-                    style={styles.stackWidgetImage}
-                    contentFit="contain"
-                  />
-                </View>
-                <View style={styles.paginationDots}>
-                  {dDayCards.map((_, index) => (
-                    <View
-                      key={index}
-                      style={[
-                        styles.dot,
-                        index === currentDDayIndex && styles.dotActive,
-                      ]}
+
+          {/* 카드 스택 영역 */}
+          <GestureHandlerRootView
+            style={[styles.stackCardsContainer2, styles.debugGestureContainer]}
+          >
+            <StatusBar hidden />
+            <GestureDetector
+              gesture={Gesture.Race(
+                tapGesture,
+                panGesture,
+                Gesture.Exclusive(flingUp, flingDown)
+              )}
+            >
+              <View
+                style={[
+                  {
+                    alignItems: "center",
+                    flex: 1,
+                    justifyContent: "flex-end",
+                    marginBottom: layout.cardsGap * 2,
+                    width: "100%",
+                    minHeight: 200, // 최소 높이 보장
+                    position: "relative", // 카드들이 absolute로 겹치도록
+                  },
+                  styles.debugTouchArea, // 디버깅용: 터치 영역 시각화
+                ]}
+                pointerEvents="box-none"
+              >
+                {data.map((c, index) => {
+                  return (
+                    <Card
+                      info={c}
+                      key={c.id}
+                      index={index}
+                      totalLength={data.length - 1}
+                      activeIndex={activeIndex}
+                      cardsGap={layout.cardsGap}
                     />
-                  ))}
-                </View>
+                  );
+                })}
               </View>
-            </GestureHandlerRootView>
-          </View>
+            </GestureDetector>
+          </GestureHandlerRootView>
         </View>
 
         {/* 메인 컨텐츠 영역 */}
@@ -478,7 +308,7 @@ const styles = StyleSheet.create({
     height: 215,
     width: "100%",
     position: "relative",
-    overflow: "hidden",
+    overflow: "visible", // 디버깅용: 제스처 영역이 보이도록
   },
   heroImage: {
     width: "100%",
@@ -503,16 +333,32 @@ const styles = StyleSheet.create({
     alignItems: "center",
     zIndex: 10,
   },
-  heroContent: {
+  stackCardsContainer1: {
+    flex: 1,
+    paddingTop: Constants.statusBarHeight,
+    backgroundColor: colors.primary,
+    padding: layout.spacing,
+  },
+  stackCardsContainer2: {
     position: "absolute",
-    bottom: 0,
+    top: 0,
     left: 0,
     right: 0,
-    paddingHorizontal: 25,
-    paddingBottom: 40,
-    flexDirection: "row",
-    alignItems: "flex-end",
-    justifyContent: "space-between",
+    bottom: 0,
+    backgroundColor: "transparent", // 배경 투명하게
+    padding: layout.spacing,
+    zIndex: 5, // 이미지 위에 표시
+  },
+  debugGestureContainer: {
+    // 디버깅용: 제스처 영역 시각화를 위한 추가 스타일
+    backgroundColor: "rgba(255, 255, 0, 0.1)", // 노란색 반투명 (제스처 컨테이너 영역)
+  },
+  debugTouchArea: {
+    // 디버깅용: 터치 영역 시각화 (빨간색 반투명 배경)
+    backgroundColor: "rgba(255, 0, 0, 0.3)",
+    borderWidth: 3,
+    borderColor: "rgba(255, 0, 0, 0.8)",
+    borderStyle: "dashed",
   },
   dDayStackContainer: {
     flexDirection: "row",

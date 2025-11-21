@@ -1,9 +1,16 @@
+import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useState } from "react";
 import {
+  Dimensions,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
   useColorScheme,
@@ -79,13 +86,45 @@ const generateCalendarDays = () => {
   return days;
 };
 
+const TAB_BAR_HEIGHT = 64;
+const TAB_BAR_MARGIN_BOTTOM = 18; // 기본 marginBottom
+
 export default function CalendarView() {
   const colorScheme = useColorScheme();
   const insets = useSafeAreaInsets();
   const [selectedDate, setSelectedDate] = useState(7);
   const [currentMonth, setCurrentMonth] = useState("11월");
+  const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
   const calendarDays = generateCalendarDays();
   const selectedEvent = events.find((event) => event.date === selectedDate);
+
+  const screenHeight = Dimensions.get("window").height;
+  const tabBarTotalHeight =
+    TAB_BAR_HEIGHT + TAB_BAR_MARGIN_BOTTOM + insets.bottom;
+  const bottomSheetMaxHeight = screenHeight - tabBarTotalHeight;
+
+  // Detail modal state
+  const [title, setTitle] = useState("중학교 친구들");
+  const [isAllDay, setIsAllDay] = useState(false);
+  const [startDate, setStartDate] = useState("2025년 11월 7일");
+  const [endDate, setEndDate] = useState("2025년 11월 7일");
+  const [startTime, setStartTime] = useState("13:00");
+  const [endTime, setEndTime] = useState("14:00");
+  const [repeatOption, setRepeatOption] = useState("반복 없음");
+  const [reminderOption, setReminderOption] = useState("알림 없음");
+  const [location, setLocation] = useState("");
+  const [notes, setNotes] = useState("");
+
+  const handleOpenDetail = () => {
+    if (selectedEvent) {
+      setTitle(selectedEvent.title);
+      setIsDetailModalVisible(true);
+    }
+  };
+
+  const handleCloseDetail = () => {
+    setIsDetailModalVisible(false);
+  };
 
   return (
     <View
@@ -194,7 +233,11 @@ export default function CalendarView() {
           </View>
 
           {selectedEvent && (
-            <View style={styles.eventCard}>
+            <TouchableOpacity
+              style={styles.eventCard}
+              onPress={handleOpenDetail}
+              activeOpacity={0.7}
+            >
               <View style={styles.eventTop}>
                 <View style={styles.profileGroup}>
                   <View style={styles.profile}>
@@ -213,10 +256,240 @@ export default function CalendarView() {
                   {selectedEvent.location}
                 </Text>
               </View>
-            </View>
+            </TouchableOpacity>
           )}
         </View>
       </ScrollView>
+
+      {/* BottomSheet Detail Modal */}
+      <Modal
+        visible={isDetailModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={handleCloseDetail}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.modalKeyboardView}
+        >
+          <View style={styles.modalContainer}>
+            <Pressable
+              style={styles.modalOverlay}
+              onPress={handleCloseDetail}
+            />
+            <View
+              style={[
+                styles.bottomSheet,
+                {
+                  paddingBottom: Math.max(insets.bottom, 24),
+                  maxHeight: bottomSheetMaxHeight,
+                },
+              ]}
+            >
+              {/* Header with drag indicator */}
+              <View style={styles.bottomSheetHeader}>
+                <View style={styles.dragIndicator} />
+              </View>
+
+              <ScrollView
+                style={styles.bottomSheetScrollView}
+                contentContainerStyle={styles.bottomSheetScrollContent}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+              >
+                {/* Title */}
+                <View style={styles.bottomSheetSection}>
+                  <Text style={styles.bottomSheetLabel}>제목</Text>
+                  <TextInput
+                    style={styles.bottomSheetTitleInput}
+                    value={title}
+                    onChangeText={setTitle}
+                    placeholder="제목을 입력하세요"
+                    placeholderTextColor="#A0A0A0"
+                  />
+                </View>
+
+                {/* Participants */}
+                <View style={styles.bottomSheetSection}>
+                  <View style={styles.bottomSheetParticipantsContainer}>
+                    <View style={styles.bottomSheetProfileGroup}>
+                      <View
+                        style={[
+                          styles.bottomSheetProfile,
+                          styles.bottomSheetProfileFirst,
+                        ]}
+                      >
+                        <Image
+                          source={{ uri: img9 }}
+                          style={styles.bottomSheetProfileImage}
+                          contentFit="cover"
+                        />
+                      </View>
+                      <View
+                        style={[
+                          styles.bottomSheetProfile,
+                          styles.bottomSheetProfileSecond,
+                        ]}
+                      >
+                        <Image
+                          source={{ uri: img9 }}
+                          style={styles.bottomSheetProfileImage}
+                          contentFit="cover"
+                        />
+                      </View>
+                      <View
+                        style={[
+                          styles.bottomSheetProfile,
+                          styles.bottomSheetProfileThird,
+                          styles.bottomSheetProfileHighlighted,
+                        ]}
+                      >
+                        <View style={styles.bottomSheetProfileStacked}>
+                          <Image
+                            source={{ uri: img9 }}
+                            style={styles.bottomSheetProfileImageSmall}
+                            contentFit="cover"
+                          />
+                          <Image
+                            source={{ uri: img9 }}
+                            style={styles.bottomSheetProfileImageSmall}
+                            contentFit="cover"
+                          />
+                        </View>
+                      </View>
+                    </View>
+                    <Text style={styles.bottomSheetParticipantsText}>우리</Text>
+                  </View>
+                </View>
+
+                {/* Date and Time */}
+                <View style={styles.bottomSheetSection}>
+                  <View style={styles.bottomSheetDateTimeRow}>
+                    <Ionicons
+                      name="calendar-outline"
+                      size={20}
+                      color="#31170F"
+                    />
+                    <View style={styles.bottomSheetDateTimeContent}>
+                      <View style={styles.bottomSheetDateRow}>
+                        <Text style={styles.bottomSheetDateText}>
+                          {startDate}
+                        </Text>
+                        <Ionicons
+                          name="arrow-forward"
+                          size={16}
+                          color="#6F5B52"
+                          style={styles.bottomSheetArrowIcon}
+                        />
+                        <Text style={styles.bottomSheetDateText}>
+                          {endDate}
+                        </Text>
+                      </View>
+                      {!isAllDay && (
+                        <View style={styles.bottomSheetTimeRow}>
+                          <Text style={styles.bottomSheetTimeText}>
+                            {startTime}
+                          </Text>
+                          <Ionicons
+                            name="arrow-forward"
+                            size={16}
+                            color="#6F5B52"
+                            style={styles.bottomSheetArrowIcon}
+                          />
+                          <Text style={styles.bottomSheetTimeText}>
+                            {endTime}
+                          </Text>
+                        </View>
+                      )}
+                      <TouchableOpacity
+                        style={[
+                          styles.bottomSheetAllDayButton,
+                          isAllDay && styles.bottomSheetAllDayButtonActive,
+                        ]}
+                        onPress={() => setIsAllDay(!isAllDay)}
+                        activeOpacity={0.7}
+                      >
+                        <Text
+                          style={[
+                            styles.bottomSheetAllDayButtonText,
+                            isAllDay &&
+                              styles.bottomSheetAllDayButtonTextActive,
+                          ]}
+                        >
+                          하루종일
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </View>
+
+                {/* Repeat Schedule */}
+                <TouchableOpacity
+                  style={styles.bottomSheetOptionRow}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="refresh-outline" size={20} color="#31170F" />
+                  <Text style={styles.bottomSheetOptionLabel}>일정반복</Text>
+                  <View style={styles.bottomSheetOptionRight}>
+                    <Text style={styles.bottomSheetOptionValue}>
+                      {repeatOption}
+                    </Text>
+                    <Ionicons name="chevron-down" size={16} color="#A0A0A0" />
+                  </View>
+                </TouchableOpacity>
+
+                {/* Reminder */}
+                <TouchableOpacity
+                  style={styles.bottomSheetOptionRow}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons
+                    name="notifications-outline"
+                    size={20}
+                    color="#31170F"
+                  />
+                  <Text style={styles.bottomSheetOptionLabel}>미리알림</Text>
+                  <View style={styles.bottomSheetOptionRight}>
+                    <Text style={styles.bottomSheetOptionValue}>
+                      {reminderOption}
+                    </Text>
+                    <Ionicons name="chevron-down" size={16} color="#A0A0A0" />
+                  </View>
+                </TouchableOpacity>
+
+                {/* Location */}
+                <View style={styles.bottomSheetOptionRow}>
+                  <Ionicons name="location-outline" size={20} color="#31170F" />
+                  <TextInput
+                    style={styles.bottomSheetOptionInput}
+                    value={location}
+                    onChangeText={setLocation}
+                    placeholder="위치"
+                    placeholderTextColor="#A0A0A0"
+                  />
+                </View>
+
+                {/* Notes */}
+                <View style={styles.bottomSheetOptionRow}>
+                  <Ionicons
+                    name="document-text-outline"
+                    size={20}
+                    color="#31170F"
+                  />
+                  <TextInput
+                    style={styles.bottomSheetOptionInput}
+                    value={notes}
+                    onChangeText={setNotes}
+                    placeholder="메모"
+                    placeholderTextColor="#A0A0A0"
+                    multiline
+                  />
+                </View>
+              </ScrollView>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }
@@ -436,5 +709,211 @@ const styles = StyleSheet.create({
     color: "#877A74",
     letterSpacing: -0.24,
     lineHeight: 16,
+  },
+  // BottomSheet Modal Styles
+  modalKeyboardView: {
+    flex: 1,
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: "flex-end",
+    height: "100%",
+    zIndex: 9999,
+  },
+  modalOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 9998,
+  },
+  bottomSheet: {
+    backgroundColor: "#FFFFFF",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingTop: 8,
+    zIndex: 9999,
+    elevation: 9999,
+  },
+  bottomSheetHeader: {
+    paddingTop: 8,
+    paddingBottom: 8,
+    alignItems: "center",
+  },
+  dragIndicator: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: "#E8E3E0",
+  },
+  bottomSheetScrollView: {
+    flex: 1,
+  },
+  bottomSheetScrollContent: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 24,
+  },
+  bottomSheetSection: {
+    marginBottom: 24,
+  },
+  bottomSheetLabel: {
+    fontSize: 14,
+    fontWeight: "400",
+    color: "#A0A0A0",
+    letterSpacing: -0.28,
+    marginBottom: 12,
+  },
+  bottomSheetTitleInput: {
+    fontSize: 18,
+    fontWeight: "500",
+    color: "#31170F",
+    letterSpacing: -0.36,
+    padding: 0,
+    lineHeight: 24,
+  },
+  bottomSheetParticipantsContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginTop: 4,
+  },
+  bottomSheetProfileGroup: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  bottomSheetProfile: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    overflow: "hidden",
+    borderWidth: 2,
+    borderColor: "#FFFFFF",
+    backgroundColor: "#E8E3E0",
+  },
+  bottomSheetProfileFirst: {
+    zIndex: 3,
+  },
+  bottomSheetProfileSecond: {
+    marginLeft: -12,
+    zIndex: 2,
+  },
+  bottomSheetProfileThird: {
+    marginLeft: -12,
+    zIndex: 1,
+  },
+  bottomSheetProfileHighlighted: {
+    borderColor: "#FF6638",
+    borderWidth: 2,
+  },
+  bottomSheetProfileImage: {
+    width: "100%",
+    height: "100%",
+  },
+  bottomSheetProfileStacked: {
+    width: "100%",
+    height: "100%",
+    flexDirection: "row",
+  },
+  bottomSheetProfileImageSmall: {
+    width: "50%",
+    height: "100%",
+  },
+  bottomSheetParticipantsText: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#31170F",
+    letterSpacing: -0.32,
+  },
+  bottomSheetDateTimeRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+    marginTop: 4,
+  },
+  bottomSheetDateTimeContent: {
+    flex: 1,
+    gap: 8,
+  },
+  bottomSheetDateRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  bottomSheetDateText: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#31170F",
+    letterSpacing: -0.32,
+  },
+  bottomSheetTimeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  bottomSheetTimeText: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#31170F",
+    letterSpacing: -0.32,
+  },
+  bottomSheetArrowIcon: {
+    marginHorizontal: 4,
+  },
+  bottomSheetAllDayButton: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: "#F5F0EB",
+    marginTop: 4,
+  },
+  bottomSheetAllDayButtonActive: {
+    backgroundColor: "#FF6638",
+  },
+  bottomSheetAllDayButtonText: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#6F5B52",
+    letterSpacing: -0.28,
+  },
+  bottomSheetAllDayButtonTextActive: {
+    color: "#FFFFFF",
+  },
+  bottomSheetOptionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F5F0EB",
+    minHeight: 56,
+  },
+  bottomSheetOptionLabel: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#31170F",
+    letterSpacing: -0.32,
+  },
+  bottomSheetOptionRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  bottomSheetOptionValue: {
+    fontSize: 16,
+    fontWeight: "400",
+    color: "#A0A0A0",
+    letterSpacing: -0.32,
+  },
+  bottomSheetOptionInput: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: "400",
+    color: "#31170F",
+    letterSpacing: -0.32,
+    padding: 0,
   },
 });

@@ -169,6 +169,10 @@ export default function RootLayout() {
           <Stack.Screen name="modal" options={{ presentation: "modal" }} />
           <Stack.Screen name="settings" />
           <Stack.Screen name="auth" />
+          <Stack.Screen
+            name="calendar-detail"
+            options={{ presentation: "modal" }}
+          />
         </Stack>
       </AuthContext.Provider>
     </QueryClientProvider>

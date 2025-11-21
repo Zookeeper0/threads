@@ -104,17 +104,26 @@ export default function TabLayout() {
       (segment: string) => segment === "(board)" || segment === "board"
     ) &&
       !pathname?.includes("/album"));
-  const translateY = useSharedValue(isMapView ? 200 : 0);
+
+  // 캘린더 상세 모달일 때도 탭바 숨기기
+  const isCalendarDetail =
+    pathname?.includes("calendar-detail") ||
+    segments.some((segment: string) => segment === "calendar-detail");
+
+  const shouldHideTabBar = isMapView || isCalendarDetail;
+  const translateY = useSharedValue(shouldHideTabBar ? 200 : 0);
 
   // 탭바 translateY 값을 일반 숫자로 변환 (애니메이션 적용을 위해)
-  const [tabBarTranslateY, setTabBarTranslateY] = useState(isMapView ? 200 : 0);
-  const [tabBarOpacity, setTabBarOpacity] = useState(isMapView ? 0 : 1);
+  const [tabBarTranslateY, setTabBarTranslateY] = useState(
+    shouldHideTabBar ? 200 : 0
+  );
+  const [tabBarOpacity, setTabBarOpacity] = useState(shouldHideTabBar ? 0 : 1);
 
   // 탭바 애니메이션
   useEffect(() => {
     // 아래에서 위로 올라오도록 음수에서 0으로
-    const targetY = isMapView ? -300 : 0;
-    const targetOpacity = isMapView ? 0 : 1;
+    const targetY = shouldHideTabBar ? -300 : 0;
+    const targetOpacity = shouldHideTabBar ? 0 : 1;
 
     translateY.value = withTiming(targetY, {
       duration: 300,
@@ -137,7 +146,7 @@ export default function TabLayout() {
     }, 16);
 
     return () => clearInterval(interval);
-  }, [isMapView, translateY]);
+  }, [shouldHideTabBar, translateY]);
 
   // 앱 시작 시 홈 화면으로 이동 (한 번만 실행)
   useEffect(() => {
@@ -164,7 +173,7 @@ export default function TabLayout() {
 
   // 안드로이드 네비게이션 바에 따른 탭바 위치 계산
   const getTabBarMarginBottom = () => {
-    if (isMapView) return -300;
+    if (shouldHideTabBar) return -300;
 
     // 기본 marginBottom
     const baseMarginBottom = 18;
@@ -204,32 +213,32 @@ export default function TabLayout() {
           tabBarStyle: [
             styles.tabBar,
             {
-              backgroundColor: isMapView ? "transparent" : "#FFFCF8",
+              backgroundColor: shouldHideTabBar ? "transparent" : "#FFFCF8",
               borderTopWidth: 0,
-              elevation: isMapView ? 0 : 20,
+              elevation: shouldHideTabBar ? 0 : 20,
               shadowColor: "#E8E8E8",
               shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: isMapView ? 0 : 1,
+              shadowOpacity: shouldHideTabBar ? 0 : 1,
               shadowRadius: 20,
-              height: isMapView ? 0 : 64,
-              paddingBottom: isMapView ? 0 : 9,
-              paddingTop: isMapView ? 0 : 9,
-              paddingLeft: isMapView ? 0 : 14,
+              height: shouldHideTabBar ? 0 : 64,
+              paddingBottom: shouldHideTabBar ? 0 : 9,
+              paddingTop: shouldHideTabBar ? 0 : 9,
+              paddingLeft: shouldHideTabBar ? 0 : 14,
               borderRadius: 9999,
               marginBottom: getTabBarMarginBottom(),
-              width: isMapView ? 0 : 330,
+              width: shouldHideTabBar ? 0 : 330,
               position: "absolute",
               left: 0,
               right: 0,
-              bottom: isMapView ? -300 : tabBarTranslateY,
-              opacity: isMapView ? 0 : tabBarOpacity,
+              bottom: shouldHideTabBar ? -300 : tabBarTranslateY,
+              opacity: shouldHideTabBar ? 0 : tabBarOpacity,
               overflow: "hidden",
-              pointerEvents: isMapView ? "none" : "auto",
-              zIndex: isMapView ? -999 : 1,
-              gap: isMapView ? 0 : 20,
+              pointerEvents: shouldHideTabBar ? "none" : "auto",
+              zIndex: shouldHideTabBar ? -999 : 1,
+              gap: shouldHideTabBar ? 0 : 20,
               justifyContent: "space-between",
               alignSelf: "center" as const,
-              marginHorizontal: isMapView
+              marginHorizontal: shouldHideTabBar
                 ? 0
                 : (Dimensions.get("window").width - 330) / 2,
               boxShadow: "0px 4px 20px #e8e8e8",
