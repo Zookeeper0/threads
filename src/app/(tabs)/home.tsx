@@ -1,4 +1,4 @@
-import Card from "@/components/Card/StackCards";
+import { CardStack } from "@/components/Card/StackCards";
 import data from "@/components/Card/data";
 import { recentMemories } from "@/lib/data/dummy";
 import { Ionicons } from "@expo/vector-icons";
@@ -46,13 +46,13 @@ interface DDayCard {
 const { width } = Dimensions.get("window");
 
 const duration = 600;
-const _size = width * 0.9;
+const _size = width * 0.7; // 카드 크기를 더 작게
 const layout = {
-  borderRadius: 16,
+  borderRadius: 20,
   width: _size,
-  height: _size * 1.27,
+  height: _size * 0.95, // 카드 높이 비율 조정 (거의 정사각형)
   spacing: 12,
-  cardsGap: 22,
+  cardsGap: 6, // 스택 카드 간격을 더 좁게
 };
 const maxVisibleItems = 6;
 
@@ -66,6 +66,7 @@ export default function Index() {
   const colorScheme = useColorScheme();
 
   const activeIndex = useSharedValue(0);
+
   /** ============================= API 영역 ============================= */
 
   /** ============================= 비즈니스 로직 영역 ============================= */
@@ -75,7 +76,11 @@ export default function Index() {
     .numberOfPointers(1)
     .onStart(() => {
       console.log("✅ Fling UP 감지!", activeIndex.value);
-      if (activeIndex.value > 0) {
+      const maxIndex = 4; // 최대 5개 (0~4)
+      // 무한 루프: 마지막에서 위로 스와이프하면 처음으로
+      if (activeIndex.value <= 0) {
+        activeIndex.value = withTiming(maxIndex, { duration });
+      } else {
         activeIndex.value = withTiming(activeIndex.value - 1, { duration });
       }
     });
@@ -85,7 +90,11 @@ export default function Index() {
     .numberOfPointers(1)
     .onStart(() => {
       console.log("✅ Fling DOWN 감지!", activeIndex.value, data.length - 1);
-      if (activeIndex.value < data.length - 1) {
+      const maxIndex = 4; // 최대 5개 (0~4)
+      // 무한 루프: 처음에서 아래로 스와이프하면 마지막으로
+      if (activeIndex.value >= maxIndex) {
+        activeIndex.value = withTiming(0, { duration });
+      } else {
         activeIndex.value = withTiming(activeIndex.value + 1, { duration });
       }
     });
@@ -140,29 +149,25 @@ export default function Index() {
                 <View
                   style={[
                     {
-                      alignItems: "center",
+                      flexDirection: "row",
+                      alignItems: "flex-start",
                       flex: 1,
-                      justifyContent: "flex-end",
-                      marginBottom: layout.cardsGap * 2,
+                      justifyContent: "flex-start",
+                      marginTop: 20,
+                      marginLeft: 20,
                       width: "100%",
-                      minHeight: 200, // 최소 높이 보장
-                      position: "relative", // 카드들이 absolute로 겹치도록
+                      minHeight: 50,
+                      position: "relative",
                     },
-                    styles.debugTouchArea, // 디버깅용: 터치 영역 시각화
                   ]}
                 >
-                  {data.map((c, index) => {
-                    return (
-                      <Card
-                        info={c}
-                        key={c.id}
-                        index={index}
-                        totalLength={data.length - 1}
-                        activeIndex={activeIndex}
-                        cardsGap={layout.cardsGap}
-                      />
-                    );
-                  })}
+                  {/* 카드 스택과 페이지네이션 */}
+                  <CardStack
+                    data={data}
+                    activeIndex={activeIndex}
+                    cardsGap={layout.cardsGap}
+                    totalItems={5}
+                  />
                 </View>
               </GestureDetector>
             </GestureHandlerRootView>
@@ -318,9 +323,9 @@ const styles = StyleSheet.create({
   },
   stackCardsContainer2: {
     position: "absolute",
-    top: 0,
+    top: 70,
     left: 0,
-    right: 0,
+    right: 20,
     bottom: 0,
     backgroundColor: "transparent", // 배경 투명하게
     padding: layout.spacing,
@@ -328,14 +333,14 @@ const styles = StyleSheet.create({
   },
   debugGestureContainer: {
     // 디버깅용: 제스처 영역 시각화를 위한 추가 스타일
-    backgroundColor: "rgba(255, 255, 0, 0.1)", // 노란색 반투명 (제스처 컨테이너 영역)
+    // backgroundColor: "rgba(255, 255, 0, 0.1)", // 노란색 반투명 (제스처 컨테이너 영역)
   },
   debugTouchArea: {
     // 디버깅용: 터치 영역 시각화 (빨간색 반투명 배경)
-    backgroundColor: "rgba(255, 0, 0, 0.3)",
-    borderWidth: 3,
-    borderColor: "rgba(255, 0, 0, 0.8)",
-    borderStyle: "dashed",
+    // backgroundColor: "rgba(255, 0, 0, 0.3)",
+    // borderWidth: 3,
+    // borderColor: "rgba(255, 0, 0, 0.8)",
+    // borderStyle: "dashed",
   },
   dDayStackContainer: {
     flexDirection: "row",
@@ -398,18 +403,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
     letterSpacing: -0.24,
     marginTop: 4,
-  },
-  paginationDots: {
-    flexDirection: "column",
-    gap: 4,
-    justifyContent: "center",
-    marginBottom: 10,
-  },
-  dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: "rgba(255, 255, 255, 0.3)",
   },
   dotActive: {
     backgroundColor: "#FAF8F7",
