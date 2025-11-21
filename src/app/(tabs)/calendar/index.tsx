@@ -99,9 +99,8 @@ export default function CalendarView() {
   const selectedEvent = events.find((event) => event.date === selectedDate);
 
   const screenHeight = Dimensions.get("window").height;
-  const tabBarTotalHeight =
-    TAB_BAR_HEIGHT + TAB_BAR_MARGIN_BOTTOM + insets.bottom;
-  const bottomSheetMaxHeight = screenHeight - tabBarTotalHeight;
+  // 모달이 화면의 대부분을 차지하도록 높이 설정 (상단 여백 60px 정도만 남김)
+  const bottomSheetMaxHeight = screenHeight - 100;
 
   // Detail modal state
   const [title, setTitle] = useState("중학교 친구들");
@@ -283,6 +282,7 @@ export default function CalendarView() {
                 {
                   paddingBottom: Math.max(insets.bottom, 24),
                   maxHeight: bottomSheetMaxHeight,
+                  height: bottomSheetMaxHeight,
                 },
               ]}
             >
@@ -299,7 +299,7 @@ export default function CalendarView() {
               >
                 {/* Title */}
                 <View style={styles.bottomSheetSection}>
-                  <Text style={styles.bottomSheetLabel}>제목</Text>
+                  <Text style={styles.bottomSheetTitleLabel}>제목</Text>
                   <TextInput
                     style={styles.bottomSheetTitleInput}
                     value={title}
@@ -369,6 +369,7 @@ export default function CalendarView() {
                       name="calendar-outline"
                       size={20}
                       color="#31170F"
+                      style={styles.bottomSheetIcon}
                     />
                     <View style={styles.bottomSheetDateTimeContent}>
                       <View style={styles.bottomSheetDateRow}>
@@ -735,6 +736,8 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     zIndex: 9999,
     elevation: 9999,
+    width: "100%",
+    position: "relative",
   },
   bottomSheetHeader: {
     paddingTop: 8,
@@ -756,13 +759,20 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
   bottomSheetSection: {
-    marginBottom: 24,
+    marginBottom: 20,
   },
   bottomSheetLabel: {
     fontSize: 14,
     fontWeight: "400",
     color: "#A0A0A0",
     letterSpacing: -0.28,
+    marginBottom: 12,
+  },
+  bottomSheetTitleLabel: {
+    fontSize: 24,
+    fontWeight: "400",
+    color: "#A0A0A0",
+    letterSpacing: -0.48,
     marginBottom: 12,
   },
   bottomSheetTitleInput: {
@@ -777,7 +787,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    marginTop: 4,
   },
   bottomSheetProfileGroup: {
     flexDirection: "row",
@@ -830,7 +839,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-start",
     gap: 12,
-    marginTop: 4,
+  },
+  bottomSheetIcon: {
+    marginTop: 2,
   },
   bottomSheetDateTimeContent: {
     flex: 1,

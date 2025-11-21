@@ -2,13 +2,15 @@ import { CardStack } from "@/components/Card/StackCards";
 import data from "@/components/Card/data";
 import { recentMemories } from "@/lib/data/dummy";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
 import { Image } from "expo-image";
-import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useContext } from "react";
+import { useContext, useEffect, useState } from "react";
 import {
   Dimensions,
+  Modal,
+  Pressable,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -25,6 +27,9 @@ import {
 import { useSharedValue, withTiming } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AuthContext } from "../_layout";
+const imgCloseX = require("../../assets/svg/close.svg");
+const imgImage = require("../../assets/svg/image.svg");
+const imgCamera = require("../../assets/svg/camera.svg");
 
 // 임시 이미지 URL (실제로는 Figma에서 받은 이미지 URL을 사용하거나 로컬 에셋 사용)
 const HERO_IMAGE =
@@ -67,20 +72,64 @@ export default function Index() {
 
   const activeIndex = useSharedValue(0);
 
+  const [isBottomSheetVisible, setIsBottomSheetVisible] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [cardPosition, setCardPosition] = useState<{
+    top: number;
+    left: number;
+  } | null>(null);
+
+  // 저장된 카드 위치 불러오기
+  useEffect(() => {
+    AsyncStorage.getItem("@cardPosition").then((saved) => {
+      if (saved) {
+        const position = JSON.parse(saved);
+        setCardPosition(position);
+      }
+    });
+  }, []);
+
   /** ============================= API 영역 ============================= */
 
   /** ============================= 비즈니스 로직 영역 ============================= */
+  const handleCloseBottomSheet = () => {
+    setIsBottomSheetVisible(false);
+  };
+
+  const handleTakePhoto = () => {
+    setIsBottomSheetVisible(true);
+  };
+
+  const handleSelectFromAlbum = () => {
+    setIsBottomSheetVisible(false);
+    setIsEditMode(true);
+  };
+
+  const handleSaveCardPosition = async (position: {
+    top: number;
+    left: number;
+  }) => {
+    // AsyncStorage에 먼저 저장
+    await AsyncStorage.setItem("@cardPosition", JSON.stringify(position));
+    // 상태 업데이트와 편집 모드 종료를 동시에 (상태가 업데이트되기 전에 편집 모드가 종료되지 않도록)
+    setCardPosition(position);
+    setIsEditMode(false);
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditMode(false);
+    // 취소 시 저장된 위치로 되돌림 (이미 저장된 위치가 있으면 그대로 유지)
+  };
 
   const flingUp = Gesture.Fling()
     .direction(Directions.UP)
     .numberOfPointers(1)
+    .enabled(!isEditMode)
     .onStart(() => {
       console.log("✅ Fling UP 감지!", activeIndex.value);
       const maxIndex = 4; // 최대 5개 (0~4)
-      // 무한 루프: 마지막에서 위로 스와이프하면 처음으로
-      if (activeIndex.value <= 0) {
-        activeIndex.value = withTiming(maxIndex, { duration });
-      } else {
+      // 처음에서는 더 이상 이동하지 않음
+      if (activeIndex.value > 0) {
         activeIndex.value = withTiming(activeIndex.value - 1, { duration });
       }
     });
@@ -88,13 +137,12 @@ export default function Index() {
   const flingDown = Gesture.Fling()
     .direction(Directions.DOWN)
     .numberOfPointers(1)
+    .enabled(!isEditMode)
     .onStart(() => {
       console.log("✅ Fling DOWN 감지!", activeIndex.value, data.length - 1);
       const maxIndex = 4; // 최대 5개 (0~4)
-      // 무한 루프: 처음에서 아래로 스와이프하면 마지막으로
-      if (activeIndex.value >= maxIndex) {
-        activeIndex.value = withTiming(0, { duration });
-      } else {
+      // 마지막에서는 더 이상 이동하지 않음
+      if (activeIndex.value < maxIndex) {
         activeIndex.value = withTiming(activeIndex.value + 1, { duration });
       }
     });
@@ -129,7 +177,8 @@ export default function Index() {
             {/* 설정 아이콘 */}
             <TouchableOpacity
               style={[styles.settingsButton, { top: insets.top + 16 }]}
-              onPress={() => router.push("/settings")}
+              // onPress={() => router.push("/settings")}
+              onPress={() => setIsBottomSheetVisible(true)}
               activeOpacity={0.7}
             >
               <Ionicons name="settings-outline" size={24} color="#FFFFFF" />
@@ -167,6 +216,10 @@ export default function Index() {
                     activeIndex={activeIndex}
                     cardsGap={layout.cardsGap}
                     totalItems={5}
+                    isEditMode={isEditMode}
+                    savedPosition={cardPosition}
+                    onSavePosition={handleSaveCardPosition}
+                    onCancelEdit={handleCancelEdit}
                   />
                 </View>
               </GestureDetector>
@@ -266,6 +319,88 @@ export default function Index() {
           </View>
         </ScrollView>
       </View>
+      {/* BottomSheet 모달 */}
+      <Modal
+        visible={isBottomSheetVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={handleCloseBottomSheet}
+      >
+        <Pressable
+          style={styles.bottomSheetOverlay}
+          onPress={handleCloseBottomSheet}
+        >
+          <Pressable
+            style={[
+              styles.bottomSheet,
+              { paddingBottom: Math.max(insets.bottom + 24, 24) },
+            ]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <View style={styles.bottomSheetHeader}>
+              <Text style={styles.bottomSheetTitle}>설정</Text>
+              <TouchableOpacity
+                style={styles.bottomSheetCloseButton}
+                onPress={() => {
+                  setIsBottomSheetVisible(false);
+                }}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Image
+                  source={imgCloseX}
+                  style={{
+                    width: 12,
+                    height: 12,
+                  }}
+                  contentFit="contain"
+                />
+              </TouchableOpacity>
+            </View>
+
+            {/* Content */}
+            <View style={styles.bottomSheetContent}>
+              {/* 배경 이미지 변경 */}
+              <TouchableOpacity
+                onPress={handleTakePhoto}
+                activeOpacity={0.7}
+                style={styles.bottomSheetOption}
+              >
+                <View style={styles.bottomSheetOptionIcon}>
+                  <Ionicons name="image-outline" size={24} color="#FF6638" />
+                </View>
+                <View style={styles.bottomSheetOptionTextContainer}>
+                  <Text style={styles.bottomSheetOptionTitle}>
+                    배경 이미지 변경
+                  </Text>
+                  <Text style={styles.bottomSheetOptionSubtitle}>
+                    우리 사진으로 바꿔보세요.
+                  </Text>
+                </View>
+              </TouchableOpacity>
+
+              {/* 디데이 설정하기 */}
+              <TouchableOpacity
+                onPress={handleSelectFromAlbum}
+                activeOpacity={0.7}
+                style={styles.bottomSheetOption}
+              >
+                <View style={styles.bottomSheetOptionIcon}>
+                  <Ionicons name="calendar-outline" size={24} color="#FF6638" />
+                </View>
+                <View style={styles.bottomSheetOptionTextContainer}>
+                  <Text style={styles.bottomSheetOptionTitle}>
+                    디데이 설정하기
+                  </Text>
+                  <Text style={styles.bottomSheetOptionSubtitle}>
+                    다양한 디데이를 설정할 수 있어요.
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </GestureHandlerRootView>
   );
 }
@@ -646,5 +781,89 @@ const styles = StyleSheet.create({
     lineHeight: 34,
     color: "#000000",
     letterSpacing: -0.56,
+  },
+
+  // BottomSheet Styles
+  bottomSheetOverlay: {
+    flex: 1,
+    justifyContent: "flex-end",
+  },
+  bottomSheet: {
+    backgroundColor: "#FFFFFF",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingTop: 0,
+    paddingHorizontal: 0,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 15 },
+    shadowOpacity: 0.18,
+    shadowRadius: 75,
+    elevation: 20,
+  },
+  bottomSheetHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingTop: 20,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
+    width: "100%",
+  },
+  bottomSheetTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#31170F",
+    letterSpacing: -0.36,
+    lineHeight: 24,
+  },
+  bottomSheetCloseButton: {
+    width: 24,
+    height: 24,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 4,
+  },
+  bottomSheetCloseIcon: {
+    width: 16,
+    height: 16,
+  },
+  bottomSheetContent: {
+    flexDirection: "column",
+    gap: 24,
+    paddingTop: 8,
+    paddingBottom: 8,
+    paddingHorizontal: 20,
+  },
+  bottomSheetOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+  },
+  bottomSheetOptionIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "#FFF5F2",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  bottomSheetOptionTextContainer: {
+    flex: 1,
+    flexDirection: "column",
+    gap: 4,
+  },
+  bottomSheetOptionTitle: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#31170F",
+    letterSpacing: -0.32,
+    lineHeight: 22,
+  },
+  bottomSheetOptionSubtitle: {
+    fontSize: 14,
+    fontWeight: "400",
+    color: "#737373",
+    letterSpacing: -0.28,
+    lineHeight: 20,
   },
 });

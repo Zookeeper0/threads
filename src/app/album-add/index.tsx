@@ -196,7 +196,7 @@ export default function AlbumAddScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* BottomSheet 모달달 */}
+      {/* BottomSheet 모달 */}
       <Modal
         visible={isBottomSheetVisible}
         transparent={true}

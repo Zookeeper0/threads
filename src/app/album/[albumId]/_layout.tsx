@@ -137,11 +137,12 @@ export default function AlbumDetailLayout() {
 
   // 현재 활성 탭 확인
   const isTimelineActive = pathname?.includes("/map") === false;
+  const initialRouteName = isTimelineActive ? "index" : "map";
 
   const handleTabPress = (tabName: "timeline" | "map") => {
-    if (tabName === "timeline" && !isTimelineActive) {
+    if (tabName === "timeline") {
       router.replace(`/album/${albumId}`);
-    } else if (tabName === "map" && isTimelineActive) {
+    } else if (tabName === "map") {
       router.replace(`/album/${albumId}/map`);
     }
   };
@@ -202,6 +203,7 @@ export default function AlbumDetailLayout() {
       {/* Material Top Tabs (스크롤 비활성화) */}
       <View style={styles.tabsContainer}>
         <MaterialTopTabs
+          initialRouteName={initialRouteName}
           screenOptions={{
             swipeEnabled: false,
             tabBarStyle: {
