@@ -2,6 +2,7 @@ import data from "@/components/Card/data";
 import Constants from "expo-constants";
 import { Dimensions, StyleSheet, Text, View } from "react-native";
 import Animated, {
+  Extrapolation,
   interpolate,
   SharedValue,
   useAnimatedStyle,
@@ -54,7 +55,10 @@ export default function Card({
           translateY: interpolate(
             activeIndex.value,
             [index - 1, index, index + 1],
-            [-layout.cardsGap, 0, layout.height + layout.cardsGap]
+            [-layout.cardsGap, 0, layout.height + layout.cardsGap],
+            {
+              extrapolateRight: Extrapolation.CLAMP,
+            }
           ),
         },
         {

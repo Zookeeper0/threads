@@ -9,7 +9,6 @@ import { StatusBar } from "expo-status-bar";
 import { useContext } from "react";
 import {
   Dimensions,
-  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -21,6 +20,7 @@ import {
   Gesture,
   GestureDetector,
   GestureHandlerRootView,
+  ScrollView,
 } from "react-native-gesture-handler";
 import { useSharedValue, withTiming } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -72,207 +72,183 @@ export default function Index() {
 
   const flingUp = Gesture.Fling()
     .direction(Directions.UP)
+    .numberOfPointers(1)
     .onStart(() => {
-      if (activeIndex.value === 0) {
-        return;
+      console.log("✅ Fling UP 감지!", activeIndex.value);
+      if (activeIndex.value > 0) {
+        activeIndex.value = withTiming(activeIndex.value - 1, { duration });
       }
-
-      activeIndex.value = withTiming(activeIndex.value - 1, { duration });
     });
 
   const flingDown = Gesture.Fling()
     .direction(Directions.DOWN)
+    .numberOfPointers(1)
     .onStart(() => {
-      if (activeIndex.value === data.length) {
-        return;
+      console.log("✅ Fling DOWN 감지!", activeIndex.value, data.length - 1);
+      if (activeIndex.value < data.length - 1) {
+        activeIndex.value = withTiming(activeIndex.value + 1, { duration });
       }
-
-      activeIndex.value = withTiming(activeIndex.value + 1, { duration });
-    });
-
-  // 디버깅용: 터치 감지 확인
-  const tapGesture = Gesture.Tap()
-    .onStart(() => {
-      console.log("✅ Tap 감지됨 - 제스처 영역 내 터치 확인!");
-    })
-    .onEnd(() => {
-      console.log("✅ Tap 종료");
-    });
-
-  const panGesture = Gesture.Pan()
-    .onStart(() => {
-      console.log("✅ Pan started - 드래그 시작 감지!");
-      if (activeIndex.value === 0) {
-        return;
-      }
-
-      activeIndex.value = withTiming(activeIndex.value - 1, { duration });
-    })
-    .onUpdate((e) => {
-      console.log(`✅ Pan update - Y 이동: ${e.translationY.toFixed(2)}`);
-    })
-    .onEnd(() => {
-      console.log("✅ Pan ended - 드래그 종료");
     });
 
   /** ============================= 컴포넌트 영역 ============================= */
 
   /** ============================= useEffect 영역 ============================= */
   return (
-    <View
-      style={[
-        styles.container,
-        { paddingTop: 0, paddingBottom: insets.bottom },
-        colorScheme === "light" ? styles.containerLight : styles.containerDark,
-      ]}
-    >
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <View
+        style={[
+          styles.container,
+          { paddingTop: 0, paddingBottom: insets.bottom },
+          colorScheme === "light"
+            ? styles.containerLight
+            : styles.containerDark,
+        ]}
       >
-        {/* 히어로 이미지 섹션 */}
-        <View style={styles.heroSection}>
-          <Image
-            source={{ uri: HERO_IMAGE }}
-            style={styles.heroImage}
-            contentFit="cover"
-          />
-          <View style={styles.heroOverlay} />
-          {/* 설정 아이콘 */}
-          <TouchableOpacity
-            style={[styles.settingsButton, { top: insets.top + 16 }]}
-            onPress={() => router.push("/settings")}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="settings-outline" size={24} color="#FFFFFF" />
-          </TouchableOpacity>
-
-          {/* 카드 스택 영역 */}
-          <GestureHandlerRootView
-            style={[styles.stackCardsContainer2, styles.debugGestureContainer]}
-          >
-            <StatusBar hidden />
-            <GestureDetector
-              gesture={Gesture.Race(
-                tapGesture,
-                panGesture,
-                Gesture.Exclusive(flingUp, flingDown)
-              )}
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* 히어로 이미지 섹션 */}
+          <View style={styles.heroSection}>
+            <Image
+              source={{ uri: HERO_IMAGE }}
+              style={styles.heroImage}
+              contentFit="cover"
+            />
+            <View style={styles.heroOverlay} />
+            {/* 설정 아이콘 */}
+            <TouchableOpacity
+              style={[styles.settingsButton, { top: insets.top + 16 }]}
+              onPress={() => router.push("/settings")}
+              activeOpacity={0.7}
             >
-              <View
-                style={[
-                  {
-                    alignItems: "center",
-                    flex: 1,
-                    justifyContent: "flex-end",
-                    marginBottom: layout.cardsGap * 2,
-                    width: "100%",
-                    minHeight: 200, // 최소 높이 보장
-                    position: "relative", // 카드들이 absolute로 겹치도록
-                  },
-                  styles.debugTouchArea, // 디버깅용: 터치 영역 시각화
-                ]}
-                pointerEvents="box-none"
+              <Ionicons name="settings-outline" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+
+            {/* 카드 스택 영역 */}
+            <GestureHandlerRootView
+              style={[
+                styles.stackCardsContainer2,
+                styles.debugGestureContainer,
+              ]}
+            >
+              <StatusBar hidden />
+              <GestureDetector
+                gesture={Gesture.Race(Gesture.Exclusive(flingUp, flingDown))}
               >
-                {data.map((c, index) => {
-                  return (
-                    <Card
-                      info={c}
-                      key={c.id}
-                      index={index}
-                      totalLength={data.length - 1}
-                      activeIndex={activeIndex}
-                      cardsGap={layout.cardsGap}
-                    />
-                  );
-                })}
-              </View>
-            </GestureDetector>
-          </GestureHandlerRootView>
-        </View>
-
-        {/* 메인 컨텐츠 영역 */}
-        <View style={styles.mainContent}>
-          {/* 추억 지도 섹션 */}
-          <View style={styles.memoryMapCard}>
-            <View style={styles.memoryMapHeader}>
-              <Text style={styles.memoryMapTitle}>우리의 추억 지도</Text>
-              <Ionicons name="chevron-forward" size={24} color="#31170F" />
-            </View>
-            <View style={styles.mapSubTitleContainer}>
-              <Text style={styles.mapSubTitle}>
-                <Text style={styles.mapSubTitleText}>함께한 장소</Text>{" "}
-                <Text style={styles.mapSubTitleBold}>8</Text>곳
-              </Text>
-              <Ionicons name="location" size={14} color="#FF7347" />
-            </View>
-            <View style={styles.mapContainer}>
-              <Image
-                source={{ uri: MAP_IMAGE }}
-                style={styles.mapImage}
-                contentFit="cover"
-              />
-              {/* 지도 마커들 */}
-              <View style={styles.mapMarker1}>
-                <View style={styles.mapMarkerOuter} />
-                <View style={styles.mapMarkerInner} />
-              </View>
-              <View style={styles.mapMarker2}>
-                <View style={styles.mapMarkerOuter} />
-                <View style={styles.mapMarkerInner} />
-              </View>
-              <View style={styles.mapMarker3}>
-                <View style={styles.mapMarkerOuter} />
-                <View style={styles.mapMarkerInner} />
-              </View>
-              <View style={styles.mapMarker4}>
-                <View style={styles.mapMarkerOuter} />
-                <View style={styles.mapMarkerInner} />
-              </View>
-              <View style={styles.mapMarker5}>
-                <View style={styles.mapMarkerOuter} />
-                <View style={styles.mapMarkerInner} />
-              </View>
-            </View>
-          </View>
-
-          {/* 최근 추억 섹션 */}
-          <View style={styles.recentMemoriesSection}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>최근 추억</Text>
-              <Text style={styles.moreLink}>더보기</Text>
-            </View>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.memoriesList}
-            >
-              {recentMemories.map((memory, index) => (
-                <View key={memory.id} style={styles.memoryCard}>
-                  <View style={styles.memoryImageContainer}>
-                    <Image
-                      source={{ uri: memory.imageUrl }}
-                      style={styles.memoryImage}
-                      contentFit="cover"
-                    />
-                  </View>
-                  <Text
-                    style={[
-                      styles.memoryCardTitle,
-                      index === 0 && styles.memoryCardTitleFirst,
-                    ]}
-                  >
-                    {memory.title}
-                  </Text>
-                  <Text style={styles.memoryCardDate}>{memory.date}</Text>
+                <View
+                  style={[
+                    {
+                      alignItems: "center",
+                      flex: 1,
+                      justifyContent: "flex-end",
+                      marginBottom: layout.cardsGap * 2,
+                      width: "100%",
+                      minHeight: 200, // 최소 높이 보장
+                      position: "relative", // 카드들이 absolute로 겹치도록
+                    },
+                    styles.debugTouchArea, // 디버깅용: 터치 영역 시각화
+                  ]}
+                >
+                  {data.map((c, index) => {
+                    return (
+                      <Card
+                        info={c}
+                        key={c.id}
+                        index={index}
+                        totalLength={data.length - 1}
+                        activeIndex={activeIndex}
+                        cardsGap={layout.cardsGap}
+                      />
+                    );
+                  })}
                 </View>
-              ))}
-            </ScrollView>
+              </GestureDetector>
+            </GestureHandlerRootView>
           </View>
 
-          {/* 다가오는 이벤트 섹션 */}
-          {/* <View style={styles.eventCard}>
+          {/* 메인 컨텐츠 영역 */}
+          <View style={styles.mainContent}>
+            {/* 추억 지도 섹션 */}
+            <View style={styles.memoryMapCard}>
+              <View style={styles.memoryMapHeader}>
+                <Text style={styles.memoryMapTitle}>우리의 추억 지도</Text>
+                <Ionicons name="chevron-forward" size={24} color="#31170F" />
+              </View>
+              <View style={styles.mapSubTitleContainer}>
+                <Text style={styles.mapSubTitle}>
+                  <Text style={styles.mapSubTitleText}>함께한 장소</Text>{" "}
+                  <Text style={styles.mapSubTitleBold}>8</Text>곳
+                </Text>
+                <Ionicons name="location" size={14} color="#FF7347" />
+              </View>
+              <View style={styles.mapContainer}>
+                <Image
+                  source={{ uri: MAP_IMAGE }}
+                  style={styles.mapImage}
+                  contentFit="cover"
+                />
+                {/* 지도 마커들 */}
+                <View style={styles.mapMarker1}>
+                  <View style={styles.mapMarkerOuter} />
+                  <View style={styles.mapMarkerInner} />
+                </View>
+                <View style={styles.mapMarker2}>
+                  <View style={styles.mapMarkerOuter} />
+                  <View style={styles.mapMarkerInner} />
+                </View>
+                <View style={styles.mapMarker3}>
+                  <View style={styles.mapMarkerOuter} />
+                  <View style={styles.mapMarkerInner} />
+                </View>
+                <View style={styles.mapMarker4}>
+                  <View style={styles.mapMarkerOuter} />
+                  <View style={styles.mapMarkerInner} />
+                </View>
+                <View style={styles.mapMarker5}>
+                  <View style={styles.mapMarkerOuter} />
+                  <View style={styles.mapMarkerInner} />
+                </View>
+              </View>
+            </View>
+
+            {/* 최근 추억 섹션 */}
+            <View style={styles.recentMemoriesSection}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>최근 추억</Text>
+                <Text style={styles.moreLink}>더보기</Text>
+              </View>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.memoriesList}
+              >
+                {recentMemories.map((memory, index) => (
+                  <View key={memory.id} style={styles.memoryCard}>
+                    <View style={styles.memoryImageContainer}>
+                      <Image
+                        source={{ uri: memory.imageUrl }}
+                        style={styles.memoryImage}
+                        contentFit="cover"
+                      />
+                    </View>
+                    <Text
+                      style={[
+                        styles.memoryCardTitle,
+                        index === 0 && styles.memoryCardTitleFirst,
+                      ]}
+                    >
+                      {memory.title}
+                    </Text>
+                    <Text style={styles.memoryCardDate}>{memory.date}</Text>
+                  </View>
+                ))}
+              </ScrollView>
+            </View>
+
+            {/* 다가오는 이벤트 섹션 */}
+            {/* <View style={styles.eventCard}>
             <Text style={styles.eventLabel}>다가오는 이벤트</Text>
             <View style={styles.eventContent}>
               <View style={styles.eventLeft}>
@@ -282,9 +258,10 @@ export default function Index() {
               <Text style={styles.eventCountdown}>D-40</Text>
             </View>
           </View> */}
-        </View>
-      </ScrollView>
-    </View>
+          </View>
+        </ScrollView>
+      </View>
+    </GestureHandlerRootView>
   );
 }
 
