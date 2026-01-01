@@ -2,6 +2,7 @@ import { Image } from "expo-image";
 import { router } from "expo-router";
 import { useState } from "react";
 import {
+  Dimensions,
   ScrollView,
   StyleSheet,
   Text,
@@ -141,6 +142,12 @@ const albums: Album[] = [
     position: "top-right",
   },
 ];
+
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const PADDING_HORIZONTAL = 16;
+const GAP = 12;
+const CARD_WIDTH = (SCREEN_WIDTH - PADDING_HORIZONTAL * 2 - GAP) / 2;
+const CARD_HEIGHT = CARD_WIDTH * 1.0; // 정사각형 비율
 
 export default function AlbumView() {
   const colorScheme = useColorScheme();
@@ -323,14 +330,14 @@ const styles = StyleSheet.create({
   albumGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 16,
-    paddingHorizontal: 16,
-    justifyContent: "space-between",
+    gap: GAP,
+    paddingHorizontal: PADDING_HORIZONTAL,
+    justifyContent: "flex-start",
   },
   albumCard: {
-    width: 156,
-    height: 156,
-    borderRadius: 20,
+    width: CARD_WIDTH,
+    height: CARD_HEIGHT,
+    borderRadius: 16,
     overflow: "hidden",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 0 },
@@ -338,6 +345,7 @@ const styles = StyleSheet.create({
     shadowRadius: 41,
     elevation: 3,
     position: "relative",
+    marginBottom: GAP,
   },
   albumCover: {
     width: "100%",
@@ -346,19 +354,19 @@ const styles = StyleSheet.create({
   },
   profileGroupTopRight: {
     position: "absolute",
-    top: 6,
-    right: 6,
+    top: 8,
+    right: 8,
     flexDirection: "row",
     alignItems: "center",
-    paddingRight: 6,
+    zIndex: 10,
   },
   profileGroupBottomLeft: {
     position: "absolute",
-    bottom: 52,
-    left: 12,
+    bottom: 48,
+    left: 10,
     flexDirection: "row",
     alignItems: "center",
-    paddingRight: 18,
+    zIndex: 10,
   },
   profile: {
     width: 20,
@@ -382,22 +390,24 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     backgroundColor: "#FAEFDF",
-    padding: 8,
-    gap: 10,
+    paddingTop: 8,
+    paddingBottom: 8,
+    paddingHorizontal: 10,
+    gap: 4,
   },
   albumTitle: {
     fontSize: 14,
     fontWeight: "700",
     color: "#31170F",
     letterSpacing: -0.28,
-    lineHeight: 20,
+    lineHeight: 18,
   },
   albumDescription: {
     fontSize: 10,
     fontWeight: "500",
     color: "#877A74",
     letterSpacing: -0.2,
-    lineHeight: 16,
+    lineHeight: 14,
   },
   addButton: {
     position: "absolute",

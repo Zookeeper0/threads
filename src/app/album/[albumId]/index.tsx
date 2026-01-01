@@ -2,7 +2,7 @@ import Toast from "@/components/Toast";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ScrollView,
   StyleSheet,
@@ -200,9 +200,12 @@ export default function AlbumTimeline() {
   const colorScheme = useColorScheme();
   const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
-  const { albumId } = useLocalSearchParams();
+  const { albumId, showToast } = useLocalSearchParams();
   const album = albums[albumId as string];
-  const [activeTab, setActiveTab] = useState<"timeline" | "map">("timeline");
+  const [toastVisible, setToastVisible] = useState(false);
+
+  // 앨범이 있는지 확인하는 변수
+  const isAlbum = false;
 
   // 화면 크기에 따른 동적 크기 계산
   const paddingHorizontal = screenWidth * 0.04; // 화면 너비의 4%
@@ -212,6 +215,13 @@ export default function AlbumTimeline() {
     large: screenWidth * 0.045, // 18px 기준
   };
   const iconSize = screenWidth * 0.05; // 화면 너비의 5%
+
+  // 토스트 표시 로직
+  useEffect(() => {
+    if (showToast === "true") {
+      setToastVisible(true);
+    }
+  }, [showToast]);
 
   if (!album) {
     return (
@@ -225,108 +235,104 @@ export default function AlbumTimeline() {
     <View style={styles.container}>
       <View style={styles.contentWrapper}>
         {/* 타임라인 컨텐츠 */}
-        {activeTab === "timeline" ? (
-          <ScrollView
-            style={styles.timelineContainer}
-            contentContainerStyle={[
-              styles.timelineContent,
-              { paddingHorizontal, paddingBottom: paddingHorizontal * 1.5 },
-            ]}
-            showsVerticalScrollIndicator={false}
-          >
-            {timelineItems.length > 0 ? (
-              timelineItems.map((item) => (
-                <TimelineItemComponent key={item.id} item={item} />
-              ))
-            ) : (
-              <View
+        <ScrollView
+          style={styles.timelineContainer}
+          contentContainerStyle={[
+            styles.timelineContent,
+            isAlbum
+              ? { paddingHorizontal, paddingBottom: paddingHorizontal * 1.5 }
+              : {
+                  flexGrow: 1,
+                  justifyContent: "center",
+                  alignItems: "center",
+                  paddingHorizontal: paddingHorizontal * 1.25,
+                },
+          ]}
+          showsVerticalScrollIndicator={false}
+        >
+          {isAlbum ? (
+            timelineItems.map((item) => (
+              <TimelineItemComponent key={item.id} item={item} />
+            ))
+          ) : (
+            <View style={styles.emptyState}>
+              <Text
                 style={[
-                  styles.emptyState,
-                  { paddingHorizontal: paddingHorizontal * 1.25 },
+                  styles.emptyStateTitle,
+                  {
+                    fontSize: fontSize.large,
+                    marginBottom: paddingHorizontal * 2,
+                  },
                 ]}
               >
+                오늘의 추억을 사진과 장소로 기록해보세요!
+              </Text>
+
+              {/* 장소 추가하기 버튼 */}
+              <TouchableOpacity
+                style={[
+                  styles.addPlaceButton,
+                  {
+                    paddingVertical: paddingHorizontal * 0.875,
+                    paddingHorizontal: paddingHorizontal * 1.5,
+                    gap: paddingHorizontal * 0.5,
+                    marginBottom: paddingHorizontal * 1.25,
+                  },
+                ]}
+                onPress={() => {
+                  router.push("/add-location");
+                }}
+              >
+                <Ionicons name="add" size={iconSize} color="#FFFFFF" />
+                <Text
+                  style={[styles.addPlaceText, { fontSize: fontSize.medium }]}
+                >
+                  장소 추가하기
+                </Text>
+              </TouchableOpacity>
+
+              {/* 사진부터 고를게요 링크 */}
+              <TouchableOpacity
+                style={[
+                  styles.selectPhotosLink,
+                  {
+                    gap: paddingHorizontal * 0.375,
+                    paddingVertical: paddingHorizontal * 0.5,
+                  },
+                ]}
+                onPress={() => {
+                  // TODO: 사진 선택 기능 구현
+                }}
+              >
+                <Ionicons
+                  name="camera-outline"
+                  size={iconSize * 0.8}
+                  color="#877A74"
+                />
                 <Text
                   style={[
-                    styles.emptyStateTitle,
-                    {
-                      fontSize: fontSize.large,
-                      marginBottom: paddingHorizontal * 2,
-                    },
+                    styles.selectPhotosText,
+                    { fontSize: fontSize.small },
                   ]}
                 >
-                  오늘의 추억을 사진과 장소로 기록해보세요!
+                  사진부터 고를게요.
                 </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </ScrollView>
+      </View>
 
-                {/* 장소 추가하기 버튼 */}
-                <TouchableOpacity
-                  style={[
-                    styles.addPlaceButton,
-                    {
-                      paddingVertical: paddingHorizontal * 0.875,
-                      paddingHorizontal: paddingHorizontal * 1.5,
-                      gap: paddingHorizontal * 0.5,
-                      marginBottom: paddingHorizontal * 1.25,
-                    },
-                  ]}
-                  onPress={() => {
-                    router.push("/add-location");
-                  }}
-                >
-                  <Ionicons name="add" size={iconSize} color="#FFFFFF" />
-                  <Text
-                    style={[styles.addPlaceText, { fontSize: fontSize.medium }]}
-                  >
-                    장소 추가하기
-                  </Text>
-                </TouchableOpacity>
-
-                {/* 사진부터 고를게요 링크 */}
-                <TouchableOpacity
-                  style={[
-                    styles.selectPhotosLink,
-                    {
-                      gap: paddingHorizontal * 0.375,
-                      paddingVertical: paddingHorizontal * 0.5,
-                    },
-                  ]}
-                  onPress={() => {
-                    // TODO: 사진 선택 기능 구현
-                  }}
-                >
-                  <Ionicons
-                    name="camera-outline"
-                    size={iconSize * 0.8}
-                    color="#6F5B52"
-                  />
-                  <Text
-                    style={[
-                      styles.selectPhotosText,
-                      { fontSize: fontSize.small },
-                    ]}
-                  >
-                    사진부터 고를게요.
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            )}
-          </ScrollView>
-        ) : (
-          <View style={styles.mapContainer}>
-            <Text
-              style={[styles.mapPlaceholder, { fontSize: fontSize.medium }]}
-            >
-              지도 뷰
-            </Text>
-          </View>
-        )}
-
-        {/* 하단 토스트 메시지 */}
+      {/* 하단 토스트 메시지 */}
+      {toastVisible && (
         <Toast
           message="앨범을 만들었어요!"
           highlightText="앨범"
           duration={2000}
+          visible={toastVisible}
+          onDismiss={() => setToastVisible(false)}
         />
-      </View>
+      )}
     </View>
   );
 }
@@ -475,35 +481,6 @@ const styles = StyleSheet.create({
   },
   contentWrapper: {
     flex: 1,
-    justifyContent: "space-between",
-  },
-  tabHeader: {
-    flexDirection: "row",
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 12,
-    gap: 8,
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    backgroundColor: "#F5F1EF",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  tabActive: {
-    backgroundColor: "#31170F",
-  },
-  tabText: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: "#737373",
-    letterSpacing: -0.28,
-  },
-  tabTextActive: {
-    color: "#FFFFFF",
   },
   timelineContainer: {
     flex: 1,
@@ -619,7 +596,7 @@ const styles = StyleSheet.create({
   emptyState: {
     alignItems: "center",
     justifyContent: "center",
-    // paddingHorizontal은 동적으로 계산됨
+    width: "100%",
   },
   emptyStateTitle: {
     fontWeight: "600",
@@ -656,7 +633,7 @@ const styles = StyleSheet.create({
   },
   selectPhotosText: {
     fontWeight: "500",
-    color: "#6F5B52",
+    color: "#877A74",
     letterSpacing: -0.28,
     textDecorationLine: "underline",
     // fontSize는 동적으로 계산됨

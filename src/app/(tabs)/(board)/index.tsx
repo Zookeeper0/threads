@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import { NaverMapView } from "@mj-studio/react-native-naver-map";
 import { Image } from "expo-image";
 import { useRef, useState } from "react";
@@ -42,6 +43,14 @@ const imgChevronRight =
 const imgMapPinFillGray =
   "http://localhost:3845/assets/7c0d9f96fe2472450162dfbdea9ec87de2d55dba.svg";
 
+interface Memory {
+  id: string;
+  title: string;
+  date: string;
+  imageUrl?: string;
+  icon?: string;
+}
+
 interface Place {
   id: string;
   name: string;
@@ -50,9 +59,11 @@ interface Place {
   imageUrl: string;
   date: string;
   category?: string;
+  categoryName?: string;
   address?: string;
   description?: string;
   tags?: string[];
+  memories?: Memory[];
 }
 
 const categories = [
@@ -76,10 +87,43 @@ const places: Place[] = [
     imageUrl: imgRectangle588,
     date: "2025. 7. 16.",
     category: "restaurant",
-    address: "서울 용산구 신흥로 97",
+    categoryName: "식당",
+    address: "서울특별시 용산구 회나무로41길 4",
     description:
       "한강과 남산이 보이는 루프탑에서 프라이빗한 파인다이닝을 즐길 수 있는 곳.",
     tags: ["파인다이닝", "기념일", "야경"],
+    memories: [
+      {
+        id: "1",
+        title: "해달 생일",
+        date: "2025.11.10",
+        icon: "🎂",
+      },
+      {
+        id: "2",
+        title: "첫 만남",
+        date: "2025.10.15",
+        icon: "💕",
+      },
+      {
+        id: "3",
+        title: "기념일",
+        date: "2025.09.20",
+        icon: "🎉",
+      },
+      {
+        id: "4",
+        title: "데이트",
+        date: "2025.08.25",
+        icon: "🌹",
+      },
+      {
+        id: "5",
+        title: "저녁 식사",
+        date: "2025.07.30",
+        icon: "🍽️",
+      },
+    ],
   },
   {
     id: "2",
@@ -107,8 +151,10 @@ const places: Place[] = [
   },
 ];
 
-const MIN_SHEET_HEIGHT = 193;
-const MAX_SHEET_HEIGHT = Dimensions.get("window").height * 0.8;
+const MIN_SHEET_HEIGHT = 240;
+const MAX_SHEET_HEIGHT = Dimensions.get("window").height * 0.7;
+const MAX_SHEET_HEIGHT_DETAIL = Dimensions.get("window").height * 0.35; // 상세 시트일 때 최대 높이
+const MIN_SHEET_HEIGHT_DETAIL = Dimensions.get("window").height * 0.35; // 상세 시트일 때 최소 높이 (최대와 동일하게 설정하여 줄일 수 없게 함)
 
 export default function MapView() {
   const colorScheme = useColorScheme();
@@ -157,12 +203,20 @@ export default function MapView() {
         dragStartHeight.current = animatedHeight.value;
       },
       onPanResponderMove: (_, gestureState) => {
+        // 상세 시트일 때는 드래그로 높이 변경 불가
+        if (activePlace) {
+          // 높이 변경 없음 (항상 고정 높이 유지)
+          return;
+        }
+
+        // 일반 리스트 모드: 기존 로직
         const deltaY = dragStartY.current - gestureState.moveY;
+        const maxHeight = MAX_SHEET_HEIGHT;
+        const minHeight = MIN_SHEET_HEIGHT;
         const newHeight = Math.max(
-          MIN_SHEET_HEIGHT,
-          Math.min(MAX_SHEET_HEIGHT, dragStartHeight.current + deltaY)
+          minHeight,
+          Math.min(maxHeight, dragStartHeight.current + deltaY)
         );
-        // 실시간으로 높이 업데이트 (애니메이션 없이 즉시 반영)
         animatedHeight.value = newHeight;
       },
       onPanResponderRelease: (_, gestureState) => {
@@ -172,39 +226,50 @@ export default function MapView() {
         const velocity = gestureState.vy;
         const deltaY = dragStartY.current - gestureState.moveY;
         const currentHeight = animatedHeight.value;
+        const maxHeight = activePlace
+          ? MAX_SHEET_HEIGHT_DETAIL
+          : MAX_SHEET_HEIGHT;
+        const minHeight = activePlace
+          ? MIN_SHEET_HEIGHT_DETAIL
+          : MIN_SHEET_HEIGHT;
 
         let targetHeight = currentHeight;
 
-        // 위로 드래그: 더 작은 임계값 (민감하게)
-        if (velocity < -0.5 || deltaY > 50) {
-          targetHeight = MAX_SHEET_HEIGHT;
-        }
-        // 아래로 드래그: 더 큰 임계값 (덜 민감하게)
-        // 속도가 빠르거나 충분히 내려야 최소 높이로
-        else if (velocity > 1.2 || deltaY < -120) {
-          targetHeight = MIN_SHEET_HEIGHT;
-        }
-        // 중간 위치에서 임계값 기준으로 결정
-        // 현재 높이가 최소 높이에 가까우면 더 많이 내려야 최소로
-        else {
-          const midPoint = (MIN_SHEET_HEIGHT + MAX_SHEET_HEIGHT) / 2;
-          const heightRange = MAX_SHEET_HEIGHT - MIN_SHEET_HEIGHT;
-          const distanceFromMin = currentHeight - MIN_SHEET_HEIGHT;
+        // 상세 시트일 때는 높이 변경 불가 (최소 = 최대)
+        if (activePlace) {
+          targetHeight = MIN_SHEET_HEIGHT_DETAIL;
+        } else {
+          // 위로 드래그: 더 작은 임계값 (민감하게)
+          if (velocity < -0.5 || deltaY > 50) {
+            targetHeight = maxHeight;
+          }
+          // 아래로 드래그: 더 큰 임계값 (덜 민감하게)
+          // 속도가 빠르거나 충분히 내려야 최소 높이로
+          else if (velocity > 1.2 || deltaY < -120) {
+            targetHeight = minHeight;
+          }
+          // 중간 위치에서 임계값 기준으로 결정
+          // 현재 높이가 최소 높이에 가까우면 더 많이 내려야 최소로
+          else {
+            const midPoint = (minHeight + maxHeight) / 2;
+            const heightRange = maxHeight - minHeight;
+            const distanceFromMin = currentHeight - minHeight;
 
-          // 최소 높이에 가까울수록 더 많이 내려야 최소로 스냅
-          if (distanceFromMin < heightRange * 0.3) {
-            // 최소 높이 근처에서는 더 많이 내려야 최소로 (deltaY < -80)
-            if (deltaY < -80) {
-              targetHeight = MIN_SHEET_HEIGHT;
+            // 최소 높이에 가까울수록 더 많이 내려야 최소로 스냅
+            if (distanceFromMin < heightRange * 0.3) {
+              // 최소 높이 근처에서는 더 많이 내려야 최소로 (deltaY < -80)
+              if (deltaY < -80) {
+                targetHeight = minHeight;
+              } else {
+                // 그대로 유지 (원래 위치로)
+                targetHeight = currentHeight;
+              }
+            } else if (currentHeight > midPoint) {
+              targetHeight = maxHeight;
             } else {
-              // 그대로 유지 (원래 위치로)
+              // 중간 위치에서는 원래 위치 유지
               targetHeight = currentHeight;
             }
-          } else if (currentHeight > midPoint) {
-            targetHeight = MAX_SHEET_HEIGHT;
-          } else {
-            // 중간 위치에서는 원래 위치 유지
-            targetHeight = currentHeight;
           }
         }
 
@@ -221,12 +286,12 @@ export default function MapView() {
 
   const handlePlacePress = (place: Place) => {
     setActivePlace(place);
-    animatedHeight.value = withSpring(MAX_SHEET_HEIGHT, {
+    animatedHeight.value = withSpring(MAX_SHEET_HEIGHT_DETAIL, {
       damping: 20,
       stiffness: 100,
       mass: 0.5,
     });
-    dragStartHeight.current = MAX_SHEET_HEIGHT;
+    dragStartHeight.current = MAX_SHEET_HEIGHT_DETAIL;
   };
 
   const handleCloseDetail = () => {
@@ -273,40 +338,44 @@ export default function MapView() {
           <View style={styles.grabber} />
         </View>
 
-        {/* 필터 */}
-        <View style={styles.filterWrapper}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.filterContainer}
-            scrollEnabled={!isDragging}
-          >
-            {categories.map((category) => (
-              <TouchableOpacity
-                key={category.id}
-                style={[
-                  styles.filterButton,
-                  selectedCategory === category.id && styles.filterButtonActive,
-                ]}
-                onPress={() => setSelectedCategory(category.id)}
-              >
-                <Image
-                  source={{ uri: category.icon }}
-                  style={styles.filterIcon}
-                  contentFit="contain"
-                />
-                <Text
+        {/* 필터 - 상세 시트가 열려있을 때는 숨김 */}
+        {!activePlace && (
+          <View style={styles.filterWrapper}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.filterContainer}
+              scrollEnabled={!isDragging}
+            >
+              {categories.map((category) => (
+                <TouchableOpacity
+                  key={category.id}
                   style={[
-                    styles.filterText,
-                    selectedCategory === category.id && styles.filterTextActive,
+                    styles.filterButton,
+                    selectedCategory === category.id &&
+                      styles.filterButtonActive,
                   ]}
+                  onPress={() => setSelectedCategory(category.id)}
                 >
-                  {category.name}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
+                  <Image
+                    source={{ uri: category.icon }}
+                    style={styles.filterIcon}
+                    contentFit="contain"
+                  />
+                  <Text
+                    style={[
+                      styles.filterText,
+                      selectedCategory === category.id &&
+                        styles.filterTextActive,
+                    ]}
+                  >
+                    {category.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
 
         {/* 최근 추가된 장소 리스트 / 상세 시트 */}
         {!activePlace ? (
@@ -346,21 +415,40 @@ export default function MapView() {
             ))}
           </ScrollView>
         ) : (
-          <View style={styles.detailSheetContainer}>
+          <ScrollView
+            style={styles.detailSheetScrollView}
+            contentContainerStyle={styles.detailSheetContainer}
+            showsVerticalScrollIndicator={true}
+            nestedScrollEnabled={true}
+            scrollEnabled={!isDragging}
+          >
+            {/* 헤더 */}
             <View style={styles.detailHeader}>
-              <View>
-                <Text style={styles.detailHeaderLabel}>오늘의 기록</Text>
+              <View style={styles.detailHeaderLeft}>
                 <Text style={styles.detailHeaderTitle}>{activePlace.name}</Text>
-                <Text style={styles.detailHeaderSubtitle}>
-                  {activePlace.address
-                    ? `${activePlace.date} · ${activePlace.address}`
-                    : activePlace.date}
-                </Text>
+                {activePlace.address && (
+                  <Text style={styles.detailHeaderAddress}>
+                    {activePlace.address}
+                  </Text>
+                )}
+                {activePlace.categoryName && (
+                  <View style={styles.detailCategoryTag}>
+                    <Image
+                      source={{
+                        uri:
+                          categories.find((c) => c.id === activePlace.category)
+                            ?.icon || imgFrame,
+                      }}
+                      style={styles.detailCategoryIcon}
+                      contentFit="contain"
+                    />
+                    <Text style={styles.detailCategoryText}>
+                      {activePlace.categoryName}
+                    </Text>
+                  </View>
+                )}
               </View>
               <TouchableOpacity
-                accessible
-                accessibilityRole="button"
-                accessibilityLabel="장소 상세 닫기"
                 style={styles.closeButton}
                 onPress={handleCloseDetail}
               >
@@ -368,55 +456,67 @@ export default function MapView() {
               </TouchableOpacity>
             </View>
 
-            <Image
-              source={{ uri: imgKakaoTalk202509201722229751 }}
-              style={styles.detailSheetImage}
-              contentFit="cover"
-            />
+            {/* 구분선 */}
+            <View style={styles.detailDivider} />
 
-            <View style={styles.detailInfoSection}>
-              <View style={styles.detailMetaRow}>
-                {activePlace.address && (
-                  <View style={styles.detailMeta}>
-                    <Image
-                      source={{ uri: imgMapPinFillGray }}
-                      style={styles.detailMetaIcon}
-                      contentFit="contain"
-                    />
-                    <Text style={styles.detailMetaText}>
-                      {activePlace.address}
-                    </Text>
-                  </View>
-                )}
-                {activePlace.category && (
-                  <View style={styles.detailMeta}>
-                    <Image
-                      source={{ uri: imgMapPinFill }}
-                      style={styles.detailMetaIcon}
-                      contentFit="contain"
-                    />
-                    <Text style={styles.detailMetaTextHighlight}>
-                      {activePlace.category}
-                    </Text>
-                  </View>
-                )}
+            {/* 이 장소에서 남긴 추억 */}
+            <View style={styles.memoriesSection}>
+              <View style={styles.memoriesSectionHeader}>
+                <Ionicons name="heart" size={16} color="#FF6638" />
+                <Text style={styles.memoriesSectionTitle}>
+                  이 장소에서 남긴 추억
+                </Text>
               </View>
 
-              {activePlace.tags && (
-                <View style={styles.tagContainer}>
-                  {activePlace.tags.map((tag) => (
-                    <View key={tag} style={styles.tagChip}>
-                      <Text style={styles.tagText}>#{tag}</Text>
-                    </View>
+              {activePlace.memories && activePlace.memories.length > 0 ? (
+                <View style={styles.memoriesList}>
+                  {activePlace.memories.map((memory) => (
+                    <TouchableOpacity
+                      key={memory.id}
+                      style={styles.memoryItem}
+                      onPress={() => {
+                        // TODO: 메모리 상세 페이지로 이동
+                      }}
+                    >
+                      <View style={styles.memoryImagePlaceholder}>
+                        {memory.imageUrl ? (
+                          <Image
+                            source={{ uri: memory.imageUrl }}
+                            style={styles.memoryImage}
+                            contentFit="cover"
+                          />
+                        ) : null}
+                      </View>
+                      <View style={styles.memoryItemContent}>
+                        <View style={styles.memoryItemTitleRow}>
+                          <Text style={styles.memoryItemTitle}>
+                            {memory.title}
+                          </Text>
+                          {memory.icon && (
+                            <Text style={styles.memoryItemIcon}>
+                              {memory.icon}
+                            </Text>
+                          )}
+                        </View>
+                        <Text style={styles.memoryItemDate}>{memory.date}</Text>
+                      </View>
+                      <Image
+                        source={{ uri: imgChevronRight }}
+                        style={styles.memoryItemArrow}
+                        contentFit="contain"
+                      />
+                    </TouchableOpacity>
                   ))}
                 </View>
+              ) : (
+                <View style={styles.emptyMemories}>
+                  <Text style={styles.emptyMemoriesText}>
+                    아직 남긴 추억이 없어요.
+                  </Text>
+                </View>
               )}
-
-              <Text style={styles.detailDescription}>
-                {activePlace.description}
-              </Text>
             </View>
-          </View>
+          </ScrollView>
         )}
       </Animated.View>
     </View>
@@ -608,111 +708,145 @@ const styles = StyleSheet.create({
     height: 16,
     tintColor: "#A3A3A3",
   },
-  detailSheetContainer: {
+  detailSheetScrollView: {
     flex: 1,
-    gap: 16,
+  },
+  detailSheetContainer: {
+    paddingBottom: 24,
   },
   detailHeader: {
     flexDirection: "row",
     alignItems: "flex-start",
     justifyContent: "space-between",
     paddingTop: 4,
+    paddingBottom: 16,
   },
-  detailHeaderLabel: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#FF6638",
-    letterSpacing: -0.24,
+  detailHeaderLeft: {
+    flex: 1,
+    gap: 8,
   },
   detailHeaderTitle: {
-    marginTop: 4,
     fontSize: 22,
     fontWeight: "700",
     color: "#0F0F0F",
     letterSpacing: -0.44,
+    lineHeight: 30,
   },
-  detailHeaderSubtitle: {
-    marginTop: 4,
-    fontSize: 13,
-    color: "#7A7A7A",
-    letterSpacing: -0.26,
+  detailHeaderAddress: {
+    fontSize: 14,
+    fontWeight: "400",
+    color: "#6F605B",
+    letterSpacing: -0.28,
+    lineHeight: 20,
+  },
+  detailCategoryTag: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: "#FFF5F2",
+    borderRadius: 20,
+    alignSelf: "flex-start",
+  },
+  detailCategoryIcon: {
+    width: 14,
+    height: 14,
+  },
+  detailCategoryText: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: "#6F605B",
+    letterSpacing: -0.24,
   },
   closeButton: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: "#E4E4E4",
+    width: 24,
+    height: 24,
     alignItems: "center",
     justifyContent: "center",
+    marginLeft: 16,
   },
   closeButtonText: {
-    fontSize: 16,
-    fontWeight: "500",
+    fontSize: 18,
+    fontWeight: "400",
     color: "#383838",
   },
-  detailSheetImage: {
-    width: "100%",
-    height: 200,
-    borderRadius: 16,
-    backgroundColor: "#F3F3F3",
+  detailDivider: {
+    height: 1,
+    backgroundColor: "#F0F0F0",
+    marginBottom: 20,
   },
-  detailInfoSection: {
-    gap: 12,
+  memoriesSection: {
+    gap: 16,
   },
-  detailMetaRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    gap: 12,
-  },
-  detailMeta: {
-    flex: 1,
+  memoriesSectionHeader: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    backgroundColor: "#F5F5F5",
-    borderRadius: 12,
   },
-  detailMetaIcon: {
+  memoriesSectionTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#0F0F0F",
+    letterSpacing: -0.32,
+  },
+  memoriesList: {
+    gap: 12,
+  },
+  memoryItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 8,
+  },
+  memoryImagePlaceholder: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    backgroundColor: "#E8E3E0",
+    overflow: "hidden",
+  },
+  memoryImage: {
+    width: "100%",
+    height: "100%",
+  },
+  memoryItemContent: {
+    flex: 1,
+    gap: 4,
+  },
+  memoryItemTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  memoryItemTitle: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#0F0F0F",
+    letterSpacing: -0.32,
+  },
+  memoryItemIcon: {
+    fontSize: 16,
+  },
+  memoryItemDate: {
+    fontSize: 14,
+    fontWeight: "400",
+    color: "#A39892",
+    letterSpacing: -0.28,
+  },
+  memoryItemArrow: {
     width: 16,
     height: 16,
+    tintColor: "#A39892",
   },
-  detailMetaText: {
-    flex: 1,
-    fontSize: 13,
-    color: "#505050",
-    letterSpacing: -0.26,
+  emptyMemories: {
+    paddingVertical: 24,
+    alignItems: "center",
   },
-  detailMetaTextHighlight: {
-    flex: 1,
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#FF6638",
-    letterSpacing: -0.26,
-  },
-  detailDescription: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: "#353535",
-    letterSpacing: -0.3,
-  },
-  tagContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  tagChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    backgroundColor: "#FFF5F0",
-    borderRadius: 999,
-  },
-  tagText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#FF6638",
-    letterSpacing: -0.24,
+  emptyMemoriesText: {
+    fontSize: 14,
+    fontWeight: "400",
+    color: "#A39892",
+    letterSpacing: -0.28,
   },
 });

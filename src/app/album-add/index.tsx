@@ -1,5 +1,6 @@
+import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import {
   KeyboardAvoidingView,
@@ -42,6 +43,8 @@ const imgGallery =
 export default function AlbumAddScreen() {
   const colorScheme = useColorScheme();
   const insets = useSafeAreaInsets();
+  const params = useLocalSearchParams();
+  const isFirst = params.isFirst === "true" ? true : false;
   const [title, setTitle] = useState("");
   const [isBottomSheetVisible, setIsBottomSheetVisible] = useState(false);
 
@@ -86,11 +89,7 @@ export default function AlbumAddScreen() {
           style={styles.headerButton}
           onPress={() => router.back()}
         >
-          <Image
-            source={{ uri: imgChevronLeft }}
-            style={styles.headerIcon}
-            contentFit="contain"
-          />
+          <Ionicons name="chevron-back" size={24} color="#31170F" />
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.headerButton}
@@ -116,6 +115,18 @@ export default function AlbumAddScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
+          {/* 첫 앨범일 때 상단 텍스트 */}
+          {isFirst && (
+            <View style={styles.firstAlbumHeader}>
+              <Text style={styles.firstAlbumTitle}>
+                연인과 첫 데이트 했던 곳, 기억나요?
+              </Text>
+              <Text style={styles.firstAlbumSubtitle}>
+                앨범 이름과 커버를 자유롭게 설정해보세요.
+              </Text>
+            </View>
+          )}
+
           {/* Sheet Content */}
           <View style={styles.sheetContent}>
             {/* 커버 이미지 영역 */}
@@ -167,7 +178,7 @@ export default function AlbumAddScreen() {
               <TextInput
                 value={title}
                 onChangeText={setTitle}
-                placeholder="앨범 이름"
+                placeholder={isFirst ? "첫 데이트" : "앨범 이름"}
                 style={styles.input}
                 placeholderTextColor="#A39892"
                 returnKeyType="done"
@@ -190,7 +201,12 @@ export default function AlbumAddScreen() {
             !canSubmit && styles.createButtonDisabled,
           ]}
           disabled={!canSubmit}
-          onPress={() => router.back()}
+          onPress={() => {
+            // 앨범 생성 후 상세 화면으로 이동
+            // TODO: 실제 앨범 ID를 받아와야 함
+            const newAlbumId = "1"; // 임시 ID
+            router.replace(`/album/${newAlbumId}?showToast=true`);
+          }}
         >
           <Text style={styles.createButtonText}>앨범 만들기</Text>
         </TouchableOpacity>
@@ -310,6 +326,31 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: "center",
     minHeight: "100%",
+  },
+  firstAlbumHeader: {
+    paddingHorizontal: 40,
+    paddingTop: 20,
+    paddingBottom: 8,
+    alignItems: "center",
+  },
+  firstAlbumTitle: {
+    fontFamily: "Pretendard Variable",
+    fontWeight: "500",
+    fontSize: 18,
+    lineHeight: 26,
+    color: "#31170F",
+    letterSpacing: -0.36,
+    textAlign: "center",
+    marginBottom: 8,
+  },
+  firstAlbumSubtitle: {
+    fontFamily: "Pretendard Variable",
+    fontWeight: "400",
+    fontSize: 14,
+    lineHeight: 20,
+    color: "#6F605B",
+    letterSpacing: -0.28,
+    textAlign: "center",
   },
   sheetContent: {
     alignItems: "center",

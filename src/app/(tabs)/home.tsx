@@ -85,6 +85,14 @@ export default function Index() {
   const [partner, setPartner] = useState<{ name: string } | null>(null);
   // 기록된 장소가 있는지 여부 (더미 상태값)
   const isLocation = false; // true일 때 지도 표시
+  // 첫 앨범 만들기 모달
+  const [isFirstAlbumModalVisible, setIsFirstAlbumModalVisible] =
+    useState(false);
+  // 연인 첫 기록 완성 모달 (더미 상태값 - 연인이 연결되어 있고 첫 기록이 완성되었을 때)
+  const [
+    isPartnerFirstRecordModalVisible,
+    setIsPartnerFirstRecordModalVisible,
+  ] = useState(false);
 
   const [mapCenter] = useState({
     latitude: 37.5665,
@@ -134,6 +142,28 @@ export default function Index() {
   const handleCancelEdit = () => {
     setIsEditMode(false);
     // 취소 시 저장된 위치로 되돌림 (이미 저장된 위치가 있으면 그대로 유지)
+  };
+
+  const handleCreateFirstAlbum = () => {
+    setIsFirstAlbumModalVisible(true);
+  };
+
+  const handleCloseFirstAlbumModal = () => {
+    setIsFirstAlbumModalVisible(false);
+  };
+
+  const handleFirstAlbumConfirm = () => {
+    setIsFirstAlbumModalVisible(false);
+    router.push("/album-add?isFirst=true");
+  };
+
+  const handleClosePartnerFirstRecordModal = () => {
+    setIsPartnerFirstRecordModalVisible(false);
+  };
+
+  const handlePartnerFirstRecordConfirm = () => {
+    setIsPartnerFirstRecordModalVisible(false);
+    router.push("/album-add?isFirst=true");
   };
 
   const flingUp = Gesture.Fling()
@@ -308,7 +338,7 @@ export default function Index() {
                   </Text>
                   <TouchableOpacity
                     style={styles.createAlbumButton}
-                    onPress={() => router.push("/(tabs)/(board)")}
+                    onPress={handleCreateFirstAlbum}
                     activeOpacity={0.8}
                   >
                     <View style={styles.createAlbumButtonGradient}>
@@ -456,6 +486,103 @@ export default function Index() {
                 </View>
               </TouchableOpacity>
             </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* 첫 앨범 만들기 모달 */}
+      <Modal
+        visible={isFirstAlbumModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={handleCloseFirstAlbumModal}
+      >
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={handleCloseFirstAlbumModal}
+        >
+          <Pressable
+            style={[
+              styles.firstAlbumModal,
+              { paddingBottom: Math.max(insets.bottom + 24, 24) },
+            ]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            {/* 아이콘 */}
+            <View style={styles.firstAlbumModalIconContainer}>
+              <View style={styles.firstAlbumModalIconBackground}>
+                <Ionicons name="mail" size={32} color="#FF8A65" />
+                <View style={styles.firstAlbumModalHeartIcon}>
+                  <Ionicons name="heart" size={16} color="#FF6638" />
+                </View>
+              </View>
+            </View>
+
+            {/* 메시지 */}
+            <Text style={styles.firstAlbumModalTitle}>
+              {partner?.name || "해달"} 님, 첫 추억을 기록해볼까요?
+            </Text>
+            <Text style={styles.firstAlbumModalSubtitle}>
+              앨범을 만들고 장소와 사진을 추가해보세요!
+            </Text>
+
+            {/* 버튼 */}
+            <TouchableOpacity
+              style={styles.firstAlbumModalButton}
+              onPress={handleFirstAlbumConfirm}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.firstAlbumModalButtonText}>좋아요!</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* 연인 첫 기록 완성 모달 */}
+      <Modal
+        visible={isPartnerFirstRecordModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={handleClosePartnerFirstRecordModal}
+      >
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={handleClosePartnerFirstRecordModal}
+        >
+          <Pressable
+            style={[
+              styles.partnerFirstRecordModal,
+              { paddingBottom: Math.max(insets.bottom + 24, 24) },
+            ]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            {/* 아이콘 */}
+            <View style={styles.firstAlbumModalIconContainer}>
+              <View style={styles.firstAlbumModalIconBackground}>
+                <Ionicons name="mail" size={32} color="#FF8A65" />
+                <View style={styles.firstAlbumModalHeartIcon}>
+                  <Ionicons name="heart" size={16} color="#FF6638" />
+                </View>
+              </View>
+            </View>
+
+            {/* 메시지 */}
+            <Text style={styles.firstAlbumModalTitle}>
+              {partner?.name || "수달"} 님, {user?.name || "해달"} 님의 첫
+              기록을 구경해보세요.
+            </Text>
+            <Text style={styles.firstAlbumModalSubtitle}>
+              장소를 추가하거나, 댓글과 평점을 남길 수 있어요 :)
+            </Text>
+
+            {/* 버튼 */}
+            <TouchableOpacity
+              style={styles.firstAlbumModalButton}
+              onPress={handlePartnerFirstRecordConfirm}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.firstAlbumModalButtonText}>바로 갈래요!</Text>
+            </TouchableOpacity>
           </Pressable>
         </Pressable>
       </Modal>
@@ -1144,5 +1271,92 @@ const styles = StyleSheet.create({
     color: "#737373",
     letterSpacing: -0.28,
     lineHeight: 20,
+  },
+
+  // 첫 앨범 만들기 모달 스타일
+  modalOverlay: {
+    flex: 1,
+    // backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "flex-end",
+  },
+  firstAlbumModal: {
+    backgroundColor: "#FFFFFF",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingTop: 32,
+    paddingHorizontal: 20,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 20,
+  },
+  firstAlbumModalIconContainer: {
+    marginBottom: 24,
+  },
+  firstAlbumModalIconBackground: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "#FFF5F2",
+    justifyContent: "center",
+    alignItems: "center",
+    position: "relative",
+  },
+  firstAlbumModalHeartIcon: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+  },
+  firstAlbumModalTitle: {
+    fontFamily: "Pretendard Variable",
+    fontWeight: "700",
+    fontSize: 18,
+    lineHeight: 26,
+    color: "#31170F",
+    letterSpacing: -0.36,
+    textAlign: "center",
+    marginBottom: 8,
+  },
+  firstAlbumModalSubtitle: {
+    fontFamily: "Pretendard Variable",
+    fontWeight: "400",
+    fontSize: 14,
+    lineHeight: 20,
+    color: "#6F605B",
+    letterSpacing: -0.28,
+    textAlign: "center",
+    marginBottom: 32,
+  },
+  firstAlbumModalButton: {
+    width: "100%",
+    backgroundColor: "#FF6638",
+    borderRadius: 24,
+    paddingVertical: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 8,
+  },
+  firstAlbumModalButtonText: {
+    fontFamily: "Pretendard Variable",
+    fontWeight: "600",
+    fontSize: 16,
+    lineHeight: 22,
+    color: "#FFFFFF",
+    letterSpacing: -0.32,
+  },
+  partnerFirstRecordModal: {
+    backgroundColor: "#FFFFFF",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingTop: 32,
+    paddingHorizontal: 20,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 20,
   },
 });
