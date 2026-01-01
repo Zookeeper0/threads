@@ -2,9 +2,11 @@ import { CardStack } from "@/components/Card/StackCards";
 import data from "@/components/Card/data";
 import { recentMemories } from "@/lib/data/dummy";
 import { Ionicons } from "@expo/vector-icons";
+import { NaverMapView } from "@mj-studio/react-native-naver-map";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
 import { Image } from "expo-image";
+import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useContext, useEffect, useState } from "react";
 import {
@@ -69,6 +71,7 @@ export default function Index() {
   const insets = useSafeAreaInsets();
   const { user } = useContext(AuthContext);
   const colorScheme = useColorScheme();
+  const router = useRouter();
 
   const activeIndex = useSharedValue(0);
 
@@ -78,6 +81,18 @@ export default function Index() {
     top: number;
     left: number;
   } | null>(null);
+  // 연인 정보 (임시로 하드코딩, 나중에 API에서 가져올 수 있음)
+  const [partner, setPartner] = useState<{ name: string } | null>(null);
+  // 기록된 장소가 있는지 여부 (더미 상태값)
+  const isLocation = false; // true일 때 지도 표시
+
+  const [mapCenter] = useState({
+    latitude: 37.5665,
+    longitude: 126.978,
+  });
+
+  // 최근 추억 데이터 (더미 상태값 - 빈 배열로 테스트 가능)
+  const [memoriesData] = useState<typeof recentMemories>([]); // 빈 배열로 테스트
 
   // 저장된 카드 위치 불러오기
   useEffect(() => {
@@ -166,6 +181,8 @@ export default function Index() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
+          {/* D+0 카드 섹션 */}
+
           {/* 히어로 이미지 섹션 */}
           <View style={styles.heroSection}>
             <Image
@@ -174,15 +191,6 @@ export default function Index() {
               contentFit="cover"
             />
             <View style={styles.heroOverlay} />
-            {/* 설정 아이콘 */}
-            <TouchableOpacity
-              style={[styles.settingsButton, { top: insets.top + 16 }]}
-              // onPress={() => router.push("/settings")}
-              onPress={() => setIsBottomSheetVisible(true)}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="settings-outline" size={24} color="#FFFFFF" />
-            </TouchableOpacity>
 
             {/* 카드 스택 영역 */}
             <GestureHandlerRootView
@@ -192,24 +200,46 @@ export default function Index() {
               ]}
             >
               <StatusBar hidden />
+
+              {/* 연인 정보 및 초대 버튼 영역 (카드 스택 위에 두 줄로 배치) */}
+              <View style={styles.heroHeaderContent}>
+                {/* 첫 번째 줄: 연인 하트 컴포넌트 */}
+                <View style={styles.heroPartnerInfo}>
+                  <Text style={styles.heroPartnerName}>
+                    {partner?.name || "해달"}
+                  </Text>
+                  <Ionicons
+                    name="heart"
+                    size={14}
+                    color="#FF6638"
+                    style={styles.heroHeartIcon}
+                  />
+                  <Text style={styles.heroPartnerLabel}>나의 연인</Text>
+                </View>
+
+                {/* 두 번째 줄: 연인을 초대해주세요 버튼 (연인이 연결되어 있으면 숨김) */}
+                {!partner && (
+                  <TouchableOpacity
+                    style={styles.heroInviteButton}
+                    onPress={() => router.push("/auth/invite")}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.heroInviteButtonText}>
+                      연인을 초대해주세요
+                    </Text>
+                    <Ionicons
+                      name="chevron-forward"
+                      size={16}
+                      color="#6F605B"
+                    />
+                  </TouchableOpacity>
+                )}
+              </View>
+
               <GestureDetector
                 gesture={Gesture.Race(Gesture.Exclusive(flingUp, flingDown))}
               >
-                <View
-                  style={[
-                    {
-                      flexDirection: "row",
-                      alignItems: "flex-start",
-                      flex: 1,
-                      justifyContent: "flex-start",
-                      marginTop: 20,
-                      marginLeft: 20,
-                      width: "100%",
-                      minHeight: 50,
-                      position: "relative",
-                    },
-                  ]}
-                >
+                <View style={[styles.cardStackWrapper]}>
                   {/* 카드 스택과 페이지네이션 */}
                   <CardStack
                     data={data}
@@ -236,39 +266,60 @@ export default function Index() {
               </View>
               <View style={styles.mapSubTitleContainer}>
                 <Text style={styles.mapSubTitle}>
-                  <Text style={styles.mapSubTitleText}>함께한 장소</Text>{" "}
-                  <Text style={styles.mapSubTitleBold}>8</Text>곳
+                  함께한 장소들이{" "}
+                  <Text style={styles.mapSubTitleHighlight}>여기</Text> 모여요
                 </Text>
-                <Ionicons name="location" size={14} color="#FF7347" />
-              </View>
-              <View style={styles.mapContainer}>
-                <Image
-                  source={{ uri: MAP_IMAGE }}
-                  style={styles.mapImage}
-                  contentFit="cover"
+                <Ionicons
+                  name="document-text-outline"
+                  size={14}
+                  color="#FF6638"
+                  style={styles.mapSubTitleIcon}
                 />
-                {/* 지도 마커들 */}
-                <View style={styles.mapMarker1}>
-                  <View style={styles.mapMarkerOuter} />
-                  <View style={styles.mapMarkerInner} />
-                </View>
-                <View style={styles.mapMarker2}>
-                  <View style={styles.mapMarkerOuter} />
-                  <View style={styles.mapMarkerInner} />
-                </View>
-                <View style={styles.mapMarker3}>
-                  <View style={styles.mapMarkerOuter} />
-                  <View style={styles.mapMarkerInner} />
-                </View>
-                <View style={styles.mapMarker4}>
-                  <View style={styles.mapMarkerOuter} />
-                  <View style={styles.mapMarkerInner} />
-                </View>
-                <View style={styles.mapMarker5}>
-                  <View style={styles.mapMarkerOuter} />
-                  <View style={styles.mapMarkerInner} />
-                </View>
               </View>
+              {/* 지도 또는 빈 상태 카드 */}
+              {isLocation ? (
+                <View style={styles.mapCard}>
+                  <NaverMapView
+                    style={StyleSheet.absoluteFillObject}
+                    initialCamera={{
+                      latitude: mapCenter.latitude,
+                      longitude: mapCenter.longitude,
+                      zoom: 15,
+                    }}
+                    isShowLocationButton={false}
+                    isShowCompass={false}
+                    isShowScaleBar={false}
+                    isShowZoomControls={false}
+                  />
+                </View>
+              ) : (
+                <View style={styles.emptyMapCard}>
+                  <Ionicons
+                    name="location-outline"
+                    size={40}
+                    color="#A39892"
+                    style={styles.emptyMapIcon}
+                  />
+                  <Text style={styles.emptyMapText}>
+                    아직 기록된 장소가 없어요.
+                  </Text>
+                  <Text style={styles.emptyMapSubText}>
+                    첫 추억을 남겨볼까요?
+                  </Text>
+                  <TouchableOpacity
+                    style={styles.createAlbumButton}
+                    onPress={() => router.push("/(tabs)/(board)")}
+                    activeOpacity={0.8}
+                  >
+                    <View style={styles.createAlbumButtonGradient}>
+                      <Ionicons name="add" size={18} color="#FFFFFF" />
+                      <Text style={styles.createAlbumButtonText}>
+                        첫 앨범 만들기
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
 
             {/* 최근 추억 섹션 */}
@@ -282,26 +333,33 @@ export default function Index() {
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.memoriesList}
               >
-                {recentMemories.map((memory, index) => (
-                  <View key={memory.id} style={styles.memoryCard}>
-                    <View style={styles.memoryImageContainer}>
-                      <Image
-                        source={{ uri: memory.imageUrl }}
-                        style={styles.memoryImage}
-                        contentFit="cover"
-                      />
-                    </View>
-                    <Text
-                      style={[
-                        styles.memoryCardTitle,
-                        index === 0 && styles.memoryCardTitleFirst,
-                      ]}
-                    >
-                      {memory.title}
-                    </Text>
-                    <Text style={styles.memoryCardDate}>{memory.date}</Text>
-                  </View>
-                ))}
+                {memoriesData.length > 0
+                  ? memoriesData.map((memory, index) => (
+                      <View key={memory.id} style={styles.memoryCard}>
+                        <View style={styles.memoryImageContainer}>
+                          <Image
+                            source={{ uri: memory.imageUrl }}
+                            style={styles.memoryImage}
+                            contentFit="cover"
+                          />
+                        </View>
+                        <Text
+                          style={[
+                            styles.memoryCardTitle,
+                            index === 0 && styles.memoryCardTitleFirst,
+                          ]}
+                        >
+                          {memory.title}
+                        </Text>
+                        <Text style={styles.memoryCardDate}>{memory.date}</Text>
+                      </View>
+                    ))
+                  : // 빈 상태: 이미지 컨테이너만 표시 (4개)
+                    Array.from({ length: 4 }).map((_, index) => (
+                      <View key={`empty-${index}`} style={styles.memoryCard}>
+                        <View style={styles.memoryImageContainer} />
+                      </View>
+                    ))}
               </ScrollView>
             </View>
 
@@ -419,10 +477,100 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    //   paddingBottom: 96, // 탭바 높이(64) + marginBottom(32)
+    paddingBottom: 96, // 탭바 높이(64) + marginBottom(32)
+  },
+  topHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    backgroundColor: "#FAF8F7",
+  },
+  headerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  partnerName: {
+    fontFamily: "Pretendard Variable",
+    fontWeight: "500",
+    fontSize: 16,
+    lineHeight: 22,
+    color: "#31170F",
+    letterSpacing: -0.32,
+  },
+  heartIcon: {
+    marginHorizontal: 2,
+  },
+  partnerLabel: {
+    fontFamily: "Pretendard Variable",
+    fontWeight: "400",
+    fontSize: 14,
+    lineHeight: 20,
+    color: "#6F605B",
+    letterSpacing: -0.28,
+  },
+  headerRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  inviteButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFF5F2",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    gap: 4,
+  },
+  inviteButtonText: {
+    fontFamily: "Pretendard Variable",
+    fontWeight: "500",
+    fontSize: 12,
+    lineHeight: 16,
+    color: "#6F605B",
+    letterSpacing: -0.24,
+  },
+  settingsButtonHeader: {
+    width: 32,
+    height: 32,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  dDayCardSection: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    backgroundColor: "#FAF8F7",
+  },
+  dDayCard: {
+    backgroundColor: "#FFF5F2",
+    borderRadius: 16,
+    paddingVertical: 24,
+    paddingHorizontal: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  dDayNumber: {
+    fontFamily: "Pretendard",
+    fontWeight: "700",
+    fontSize: 48,
+    lineHeight: 56,
+    color: "#31170F",
+    letterSpacing: -0.96,
+    marginBottom: 4,
+  },
+  dDayLabel: {
+    fontFamily: "Pretendard Variable",
+    fontWeight: "500",
+    fontSize: 14,
+    lineHeight: 20,
+    color: "#6F605B",
+    letterSpacing: -0.28,
   },
   heroSection: {
-    height: 215,
+    height: 300,
     width: "100%",
     position: "relative",
     overflow: "visible", // 디버깅용: 제스처 영역이 보이도록
@@ -438,6 +586,64 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     backgroundColor: "transparent",
+  },
+  heroHeaderContent: {
+    position: "absolute",
+    top: 120,
+    left: 15,
+    right: 20,
+    zIndex: 10,
+    flexDirection: "column",
+    gap: 8,
+    alignItems: "flex-start",
+  },
+  heroPartnerInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  heroPartnerName: {
+    fontFamily: "Pretendard Variable",
+    fontWeight: "500",
+    fontSize: 16,
+    lineHeight: 22,
+    color: "#FFFFFF",
+    letterSpacing: -0.32,
+    textShadowColor: "rgba(0, 0, 0, 0.3)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  heroHeartIcon: {
+    marginHorizontal: 2,
+  },
+  heroPartnerLabel: {
+    fontFamily: "Pretendard Variable",
+    fontWeight: "400",
+    fontSize: 14,
+    lineHeight: 20,
+    color: "#FFFFFF",
+    letterSpacing: -0.28,
+    textShadowColor: "rgba(0, 0, 0, 0.3)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  heroInviteButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    gap: 4,
+    alignSelf: "flex-start",
+  },
+  heroInviteButtonText: {
+    fontFamily: "Pretendard Variable",
+    fontWeight: "500",
+    fontSize: 12,
+    lineHeight: 16,
+    color: "#6F605B",
+    letterSpacing: -0.24,
   },
   settingsButton: {
     position: "absolute",
@@ -458,13 +664,23 @@ const styles = StyleSheet.create({
   },
   stackCardsContainer2: {
     position: "absolute",
-    top: 70,
+    top: 0,
     left: 0,
     right: 20,
     bottom: 0,
     backgroundColor: "transparent", // 배경 투명하게
     padding: layout.spacing,
     zIndex: 5, // 이미지 위에 표시
+  },
+  cardStackWrapper: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "flex-start",
+    marginTop: 180,
+    marginLeft: 0,
+    width: "100%",
+    minHeight: 50,
+    position: "relative",
   },
   debugGestureContainer: {
     // 디버깅용: 제스처 영역 시각화를 위한 추가 스타일
@@ -567,7 +783,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    marginBottom: 8,
+    marginBottom: 12,
   },
   mapSubTitle: {
     fontFamily: "Pretendard Variable",
@@ -577,13 +793,76 @@ const styles = StyleSheet.create({
     color: "#6F605B",
     letterSpacing: -0.28,
   },
-  mapSubTitleText: {
-    color: "#6F605B",
-  },
-  mapSubTitleBold: {
+  mapSubTitleHighlight: {
     fontFamily: "Pretendard Variable",
-    fontWeight: "700",
+    fontWeight: "500",
     color: "#FF6638",
+  },
+  mapSubTitleIcon: {
+    marginLeft: 2,
+  },
+  mapCard: {
+    height: 190,
+    borderRadius: 16,
+    overflow: "hidden",
+    position: "relative",
+    backgroundColor: "#F5F1ED",
+  },
+  emptyMapCard: {
+    backgroundColor: "#F5F1ED",
+    borderRadius: 16,
+    paddingVertical: 32,
+    paddingHorizontal: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 190,
+    maxHeight: 190,
+  },
+  emptyMapIcon: {
+    marginBottom: 12,
+  },
+  emptyMapText: {
+    fontFamily: "Pretendard Variable",
+    fontWeight: "500",
+    fontSize: 16,
+    lineHeight: 22,
+    color: "#6F605B",
+    letterSpacing: -0.32,
+    marginBottom: 6,
+    textAlign: "center",
+  },
+  emptyMapSubText: {
+    fontFamily: "Pretendard Variable",
+    fontWeight: "400",
+    fontSize: 14,
+    lineHeight: 20,
+    color: "#A39892",
+    letterSpacing: -0.28,
+    marginBottom: 16,
+    textAlign: "center",
+  },
+  createAlbumButton: {
+    borderRadius: 24,
+    overflow: "hidden",
+    width: "100%",
+    maxWidth: 240,
+  },
+  createAlbumButtonGradient: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    gap: 6,
+    backgroundColor: "#FF6638",
+  },
+  createAlbumButtonText: {
+    fontFamily: "Pretendard Variable",
+    fontWeight: "600",
+    fontSize: 15,
+    lineHeight: 20,
+    color: "#FFFFFF",
+    letterSpacing: -0.3,
   },
   memoryMapTitle: {
     fontFamily: "Pretendard Variable",
@@ -702,7 +981,7 @@ const styles = StyleSheet.create({
   memoryCard: {
     alignItems: "center",
     gap: 8,
-    width: 85,
+    width: 88,
   },
   memoryImageContainer: {
     width: 85,

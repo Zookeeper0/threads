@@ -199,7 +199,7 @@ export default function TabLayout() {
   const getTabBarLeft = () => {
     if (isMapView) return 0;
     const screenWidth = Dimensions.get("window").width;
-    const tabBarWidth = 330;
+    const tabBarWidth = 360;
     return (screenWidth - tabBarWidth) / 2;
   };
 
@@ -226,7 +226,7 @@ export default function TabLayout() {
               paddingLeft: shouldHideTabBar ? 0 : 14,
               borderRadius: 9999,
               marginBottom: getTabBarMarginBottom(),
-              width: shouldHideTabBar ? 0 : 330,
+              width: shouldHideTabBar ? 0 : 360,
               position: "absolute",
               left: 0,
               right: 0,
@@ -240,7 +240,7 @@ export default function TabLayout() {
               alignSelf: "center" as const,
               marginHorizontal: shouldHideTabBar
                 ? 0
-                : (Dimensions.get("window").width - 330) / 2,
+                : (Dimensions.get("window").width - 360) / 2,
               boxShadow: "0px 4px 20px #e8e8e8",
             },
           ],
